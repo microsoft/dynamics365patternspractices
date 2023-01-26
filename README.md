@@ -18,10 +18,9 @@ Contributor License Agreement (CLA) declaring that you have the right to, and ac
 the rights to use your contribution. For details, visit [https://cla.opensource.microsoft.com](https://cla.opensource.microsoft.com).
 
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+a CLA and decorate the PR appropriately (such as a status check or comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 
-Learn more at [https://learn.microsoft.com/dynamics365/guidance](https://learn.microsoft.com/dynamics365/guidance)  
+Learn more at [https://learn.microsoft.com/dynamics365/get-started/contribute](https://learn.microsoft.com/dynamics365/get-started/contribute).  
 
 ### Get started
 
@@ -31,10 +30,9 @@ Learn more at [https://learn.microsoft.com/dynamics365/guidance](https://learn.m
 
 2. Install GitHub Desktop (optional) and clone your forked repo.
 
-    GitHub Desktop makes is easy to work and collaborate with repos locally from your own desktop. For more information, see [GitHub Desktop](https://desktop.github.com/).   
+    GitHub Desktop makes is easy to work and collaborate with repos locally from your own desktop. For more information, see [GitHub Desktop](https://desktop.github.com/).  
 
 3. Start making changes.
-
 
 ## Trademarks
 
