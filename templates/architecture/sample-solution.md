@@ -87,29 +87,44 @@ The following alternative solutions provide scenario-focused lenses to build off
 
 > REQUIRED STATEMENT: Include the following statement to introduce this section:
 
-These considerations help implement a solution that includes Dynamics 365. Learn more at [Dynamics 365 guidance documentation](/dynamics365/guidance/).
+These considerations help implement a solution that includes Dynamics 365 and reflects on the Success by Design framework and the Well-Architected Framework (WAF) pillars. Learn more at [Dynamics 365 guidance documentation](/dynamics365/guidance/).
 
 > Are there any lessons learned from running this that would be helpful for new customers?  What went wrong when building it out?  What went right?
 > How do I need to think about managing, maintaining, and monitoring this long term?
 
 > REQUIREMENTS: 
 >   You must include the "Cost optimization" section. 
->   You must include at least two of the other H3 sub-sections/pillars: Reliability, Security, Operational excellence, and Performance efficiency.
+>   You must include at least two of the other H3 sub-sections/pillars: Environment strategy, Data management, Application lifecycle management, Security and Performance efficiency.
 
-### Reliability
+### Environment strategy
 
 > REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
 
-Reliability ensures your application can meet the commitments you make to your customers. For more information, see [Overview of the reliability pillar](/azure/architecture/framework/resiliency/overview).
+Environments are containers that store, manage, and share your organization's data. They also store the data model, application metadata, process definitions, and the security constructs to control access to data and apps. Learn more at [Environment strategy](/dynamics365/fasttrack/implementation-guide/environment-strategy).
 
-> This includes resiliency and availability.
-> Are there any key resiliency and reliability considerations (past the typical)?
+### Data management
+
+> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
+
+Data governance, architecture, modeling, storage, migration, integration, and quality can help you make informed decisions, improve your customer engagement, and gather real-time information about your products in the field. Learn more at [Data management](/dynamics365/fasttrack/implementation-guide/data-management).  
+
+### Application lifecycle management
+
+> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
+
+End-to-end lifecycle management can provide improved visibility, automation, delivery, and future planning for a Dynamics 365 solution. Learn more at [Application lifecycle management](/dynamics365/fasttrack/implementation-guide/application-lifecycle-management).  
+
+### Performance efficiency
+
+> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
+
+Performance and early prioritization are directly related to the success of a project. Learn more at [A performing solution, beyond infrastructure](/dynamics365/fasttrack/implementation-guide/performing-solution).  
 
 ### Security
 
 > REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
 
-Security provides assurances against deliberate attacks and the abuse of your valuable data and systems. For more information, see [Overview of the security pillar](/azure/architecture/framework/security/overview).
+Security provides assurances against deliberate attacks and the abuse of your valuable data and systems. Learn more at [Overview of the security pillar](/azure/architecture/framework/security/overview) and [Security in Dynamics 365 implementations](/dynamics365/fasttrack/implementation-guide/security).
 
 > This includes identity and data sovereignty.
 > Are there any security considerations (past the typical) that I should know about this? 
@@ -121,7 +136,7 @@ Security provides assurances against deliberate attacks and the abuse of your va
 
 > REQUIRED STATEMENT: Include the following statement to introduce the section:
 
-Cost optimization is about looking at ways to reduce unnecessary expenses and improve operational efficiencies. For more information, see [Overview of the cost optimization pillar](/azure/architecture/framework/cost/overview).
+Cost optimization is about looking at ways to reduce unnecessary expenses and improve operational efficiencies. Learn more at [Overview of the cost optimization pillar](/azure/architecture/framework/cost/overview).
 
 > How much will this cost to run? See if you can answer this without dollar amounts.
 > Are there ways I could save cost?
@@ -136,20 +151,10 @@ Cost optimization is about looking at ways to reduce unnecessary expenses and im
 
 > REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
 
-Operational excellence covers the operations processes that deploy an application and keep it running in production. For more information, see [Overview of the operational excellence pillar](/azure/architecture/framework/devops/overview).
+Operational excellence covers the operations processes that deploy an application and keep it running in production. Learn more at [Process-focused solution](/dynamics365/fasttrack/implementation-guide/process-focused-solution) and [Overview of the operational excellence pillar](/azure/architecture/framework/devops/overview).
 
 > This includes DevOps, monitoring, and diagnostics.
 > How do I need to think about operating this solution?
-
-### Performance efficiency
-
-> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
-
-Performance efficiency is the ability of your workload to scale to meet the demands placed on it by users in an efficient manner. For more information, see [Performance efficiency pillar overview](/azure/architecture/framework/scalability/overview).
-
-> This includes scalability.
-> Are there any key performance considerations (past the typical)?
-> Are there any size considerations around this specific solution? What scale does this work at? At what point do things break or not make sense for this architecture?
 
 ## Deploy this scenario
 
@@ -181,7 +186,7 @@ Performance efficiency is the ability of your workload to scale to meet the dema
 
 ## Next steps
 
-> Link to Learn articles, along with any third-party documentation.
+> Link to Microsoft Learn articles, along with any third-party documentation.
 > Where should I go next if I want to start building this?
 > Are there any relevant case studies or customers doing something similar?
 > Is there any other documentation that might be useful? Are there product documents that go into more detail on specific technologies that are not already linked?
