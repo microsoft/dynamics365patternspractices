@@ -9,11 +9,11 @@ author: #Required; your GitHub user alias, with correct capitalization.
 ms.date: mm/dd/yyyy
 ---
 
-# Article title as a noun phrase
+# Article title as a scenario
 
-*All descriptive text is formatted in italics to remind you to delete it before you complete and submit your architecture. Your article can have only one **H1 heading (#)**, which is the article title. The H1 heading is always followed by a succinct descriptive paragraph that informs the reader what the article is about and how it can help them. Do not start the article with a note or tip. .*
+*All descriptive text is formatted in italics to remind you to delete it before you complete and submit your solution. Your article can have only one **H1 heading (#)**, which is the article title. The H1 heading is always followed by a succinct descriptive paragraph that informs the reader what the article is about and how it can help them. Do not start the article with a note or tip. .*
 
-*This template is specific to **Dynamics 365 generalized architecture patterns**. A GAP acts as a core architecture with a common solution that applies to many scenarios. For example, solution ideas can build off the GAP architecture to provide a lens for a particular industry or partner solution. We then link to the GAP architecture from each solution idea. Your article should be broken down into six subheadings (H2, ## in markdown)--Architecture, Scenario details, Considerations, Deploy this scenario, Contributors, and Next steps. The H2 headings and descriptions are included in this template. If you need to create a new heading under one of the H2 headings, use an H3 heading (###).*
+*This template is specific to **Dynamics 365 solution ideas**. Solution ideas are intended to be minimal architectures to only convey the basics of a given architecture that includes Dynamics 365.  Your article should be broken down into four subheadings (H2, ## in markdown)--Architecture, Scenario details, Contributors, and Next steps. The H2 headings and descriptions are included in this template. If you need to create a new heading under one of the H2 headings, use an H3 heading (###).*
 
 ***Completing the metadata:***
 *This section provides guidance on completing the metadata section at the top of this template. Update the placeholder text based on the following guidance:*
@@ -23,13 +23,7 @@ ms.date: mm/dd/yyyy
 - ***ms.date:** Enter the date in mm/dd/yyyy format, as shown in the metadata field. Initially this should be the date your article is submitted. After publication, this field should be refreshed whenever the article is updated so readers can see that the content is fresh.*
 
 *Introductory section*
-*In this section, include 1-2 sentences to briefly explain this architecture. The full scenario info will go in the "Scenario details" section, which is below the "Architecture" H2 (top level) heading, below the "Alternatives" H3 header, and above the "Considerations" H2 (top level) header. That includes the "Potential use cases" H3 section, which goes under the "Scenario details" H2 section. The reason why we moved this content down lower, is because customers want the emphasis on the diagram and architecture first, not the scenario.*
-*Because this is a generalized architecture pattern, use the following language to link to the other architectures (likely solution ideas) that build off of it, as shown below.*
-
-This solution is a generalized architecture pattern, which can be used for many different scenarios and industries. See the following example solutions that build off of this core architecture:
-
-- [Link to first solution idea or other architecture that builds off this solution](filepath.yml)
-- [Second solution idea that builds off this solution](filepath.yml)
+*In this section, include 1-2 sentences to briefly explain this solution. The full scenario info will go in the "Scenario details" section, which is below the "Architecture" H2 (top level) heading, below the "Alternatives" H3 header, and above the "Considerations" H2 (top level) header. That includes the "Potential use cases" H3 section, which goes under the "Scenario details" H2 section. The reason why we moved this content down lower, is because customers want the emphasis on the diagram and architecture first, not the scenario.*
 
 ## Architecture
 
@@ -51,7 +45,7 @@ Examples:
 
 ### Components
 
-> A bullet list of components in the architecture (including all relevant Dynamics 365 and Azure services) with links to the product service pages. This is for lead generation (what business, marketing, and PG want). It helps drive revenue.
+> A bullet list of components in the architecture (including all relevant Dynamics 365 and Azure services) with links to the product service pages. 
 
 > Why is each component there?
 > What does it do and why was it necessary?
@@ -61,18 +55,6 @@ Examples:
 
   - [Migrate Segmented Entry controls](https://learn.microsoft.com/dynamics365/fin-ops-core/dev-itpro/financial/segmented-entry-control-conversion)
   - [Azure Bot Service](https://azure.microsoft.com/services/bot-service)
-
-### Alternatives
-
-> Use this section to talk about alternative Azure services or architectures that you might consider for this solution. Include the reasons why you might choose these alternatives. Customers find this valuable because they want to know what other services or technologies they can use as part of this architecture.
-
-> What alternative technologies were considered and why didn't we use them?
-> List all "children" architectures (likely solution ideas) that build off this GAP architecture
-
-The following alternative solutions provide scenario-focused lenses to build off of this core architecture: 
-
-- [Link to first solution idea or other architecture that builds off this solution](filepath.md)
-- [Second solution idea that builds off this solution](filepath.md)
 
 ## Scenario details
 
@@ -88,80 +70,6 @@ The following alternative solutions provide scenario-focused lenses to build off
 > What industry is the customer in? Use the following industry keywords, when possible, to get the article into the proper search and filter results: retail, finance, manufacturing, healthcare, government, energy, telecommunications, education, automotive, nonprofit, game, media (media and entertainment), travel (includes hospitality, like restaurants), facilities (includes real estate), aircraft (includes aerospace and satellites), agriculture, and sports. 
 >   Are there any other use cases or industries where this would be a fit?
 >   How similar or different are they to what's in this article?
-
-## Considerations
-
-> REQUIRED STATEMENT: Include the following statement to introduce this section:
-
-These considerations help implement a solution that includes Dynamics 365. Learn more at [Dynamics 365 guidance documentation](/dynamics365/guidance/).
-
-> Are there any lessons learned from running this that would be helpful for new customers?  What went wrong when building it out?  What went right?
-> How do I need to think about managing, maintaining, and monitoring this long term?
-
-> REQUIREMENTS: 
->   You must include the "Cost optimization" section. 
->   You must include at least two of the other H3 sub-sections/pillars: Reliability, Security, Operational excellence, and Performance efficiency.
-
-### Reliability
-
-> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
-
-Reliability ensures your application can meet the commitments you make to your customers. For more information, see [Overview of the reliability pillar](/azure/architecture/framework/resiliency/overview).
-
-> This includes resiliency and availability.
-> Are there any key resiliency and reliability considerations (past the typical)?
-
-### Security
-
-> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
-
-Security provides assurances against deliberate attacks and the abuse of your valuable data and systems. For more information, see [Overview of the security pillar](/azure/architecture/framework/security/overview).
-
-> This includes identity and data sovereignty.
-> Are there any security considerations (past the typical) that I should know about this? 
-> Because security is important to our business, be sure to include your Azure security baseline assessment recommendations in this section. See https://aka.ms/AzureSecurityBaselines
-
-### Cost optimization
-
-> REQUIRED: This section is required. Cost is of the utmost importance to our customers.
-
-> REQUIRED STATEMENT: Include the following statement to introduce the section:
-
-Cost optimization is about looking at ways to reduce unnecessary expenses and improve operational efficiencies. For more information, see [Overview of the cost optimization pillar](/azure/architecture/framework/cost/overview).
-
-> How much will this cost to run? See if you can answer this without dollar amounts.
-> Are there ways I could save cost?
-> If it scales linearly, than we should break it down by cost/unit. If it does not, why?
-> What are the components that make up the cost?
-> How does scale affect the cost?
-
-> Link to the pricing calculator with all of the components in the architecture included, even if they're a $0 or $1 usage.
-> If it makes sense, include small/medium/large configurations. Describe what needs to be changed as you move to larger sizes.
-
-### Operational excellence
-
-> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
-
-Operational excellence covers the operations processes that deploy an application and keep it running in production. For more information, see [Overview of the operational excellence pillar](/azure/architecture/framework/devops/overview).
-
-> This includes DevOps, monitoring, and diagnostics.
-> How do I need to think about operating this solution?
-
-### Performance efficiency
-
-> REQUIRED STATEMENT: If using this section, include the following statement to introduce the section:
-
-Performance efficiency is the ability of your workload to scale to meet the demands placed on it by users in an efficient manner. For more information, see [Performance efficiency pillar overview](/azure/architecture/framework/scalability/overview).
-
-> This includes scalability.
-> Are there any key performance considerations (past the typical)?
-> Are there any size considerations around this specific solution? What scale does this work at? At what point do things break or not make sense for this architecture?
-
-## Deploy this scenario
-
-> (Optional, but greatly encouraged)
-
-> Is there an example deployment that can show me this in action?  What would I need to change to run this in production?
 
 ## Contributors
 

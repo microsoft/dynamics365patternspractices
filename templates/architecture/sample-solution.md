@@ -9,11 +9,11 @@ author: #Required; your GitHub user alias, with correct capitalization.
 ms.date: mm/dd/yyyy
 ---
 
-# Article title as a noun phrase
+# Article title as a scenario
 
-*All descriptive text is formatted in italics to remind you to delete it before you complete and submit your architecture. Your article can have only one **H1 heading (#)**, which is the article title. The H1 heading is always followed by a succinct descriptive paragraph that informs the reader what the article is about and how it can help them. Do not start the article with a note or tip. .*
+*All descriptive text is formatted in italics to remind you to delete it before you complete and submit your solution. Your article can have only one **H1 heading (#)**, which is the article title. The H1 heading is always followed by a succinct descriptive paragraph that informs the reader what the article is about and how it can help them. Do not start the article with a note or tip. .*
 
-*This template is specific to **Dynamics 365 generalized architecture patterns**. A GAP acts as a core architecture with a common solution that applies to many scenarios. For example, solution ideas can build off the GAP architecture to provide a lens for a particular industry or partner solution. We then link to the GAP architecture from each solution idea. Your article should be broken down into six subheadings (H2, ## in markdown)--Architecture, Scenario details, Considerations, Deploy this scenario, Contributors, and Next steps. The H2 headings and descriptions are included in this template. If you need to create a new heading under one of the H2 headings, use an H3 heading (###).*
+*This template is specific to **Dynamics 365 sample solutions**. Sample solutions are example workloads that guide customers through the design process of solving specific aspects of Dynamics 365 implementations. They provide actionable architecture guidance based on real customer examples. Their goal is to shorten a customer's learning curve by telling them the story of another customer who has been there before. Your article should be broken down into six subheadings (H2, ## in markdown)--Architecture, Scenario details, Considerations, Deploy this scenario, Contributors, and Next steps. The H2 headings and descriptions are included in this template. If you need to create a new heading under one of the H2 headings, use an H3 heading (###).*
 
 ***Completing the metadata:***
 *This section provides guidance on completing the metadata section at the top of this template. Update the placeholder text based on the following guidance:*
@@ -23,13 +23,7 @@ ms.date: mm/dd/yyyy
 - ***ms.date:** Enter the date in mm/dd/yyyy format, as shown in the metadata field. Initially this should be the date your article is submitted. After publication, this field should be refreshed whenever the article is updated so readers can see that the content is fresh.*
 
 *Introductory section*
-*In this section, include 1-2 sentences to briefly explain this architecture. The full scenario info will go in the "Scenario details" section, which is below the "Architecture" H2 (top level) heading, below the "Alternatives" H3 header, and above the "Considerations" H2 (top level) header. That includes the "Potential use cases" H3 section, which goes under the "Scenario details" H2 section. The reason why we moved this content down lower, is because customers want the emphasis on the diagram and architecture first, not the scenario.*
-*Because this is a generalized architecture pattern, use the following language to link to the other architectures (likely solution ideas) that build off of it, as shown below.*
-
-This solution is a generalized architecture pattern, which can be used for many different scenarios and industries. See the following example solutions that build off of this core architecture:
-
-- [Link to first solution idea or other architecture that builds off this solution](filepath.yml)
-- [Second solution idea that builds off this solution](filepath.yml)
+*In this section, include 1-2 sentences to briefly explain this solution. The full scenario info will go in the "Scenario details" section, which is below the "Architecture" H2 (top level) heading, below the "Alternatives" H3 header, and above the "Considerations" H2 (top level) header. That includes the "Potential use cases" H3 section, which goes under the "Scenario details" H2 section. The reason why we moved this content down lower, is because customers want the emphasis on the diagram and architecture first, not the scenario.*
 
 ## Architecture
 
@@ -51,7 +45,7 @@ Examples:
 
 ### Components
 
-> A bullet list of components in the architecture (including all relevant Dynamics 365 and Azure services) with links to the product service pages. This is for lead generation (what business, marketing, and PG want). It helps drive revenue.
+> A bullet list of components in the architecture (including all relevant Dynamics 365 and Azure services) with links to the product service pages. 
 
 > Why is each component there?
 > What does it do and why was it necessary?
@@ -119,7 +113,7 @@ Security provides assurances against deliberate attacks and the abuse of your va
 
 > This includes identity and data sovereignty.
 > Are there any security considerations (past the typical) that I should know about this? 
-> Because security is important to our business, be sure to include your Azure security baseline assessment recommendations in this section. See https://aka.ms/AzureSecurityBaselines
+> Because security is important to our business, be sure to include your Azure security baseline assessment recommendations in this section. See [https://aka.ms/AzureSecurityBaselines](https://aka.ms/AzureSecurityBaselines).
 
 ### Cost optimization
 

@@ -2,29 +2,26 @@
 title: Replace this text based on the guidance in Completing the metadata under the Article Title section.   
 description: Replace this text based on the guidance in Completing the metadata under the Article Title section.
 keywords: Replace this text based on the guidance in Completing the metadata under the Article Title section.
+ms.service: dynamics-365
+ms.topic: conceptual
+ms.subservice: design-pattern
+author: #Required; your GitHub user alias, with correct capitalization. 
 ms.date: mm/dd/yyyy
-ms.service = dynamics-365
-ms.topic = conceptual
-ms.subservice = design-pattern
-pnp.series.title: Dynamics 365 Design Patterns
-pnp.pattern.categories: Replace this text based on the guidance in Completing the metadata under the Article Title section.
 ---
 
 # Article title
 
-_Your article can have only one **H1 heading (#)**, which is the article title. The H1 heading is always followed by a succinct descriptive paragraph that informs the reader what the article is about and how it can help them. Do not start the article with a note or tip. Descriptive text always appears in italics. Descriptive text should be deleted or replaced with your text prior to publication._
+_All descriptive text is formatted in italics to remind you to delete it before you complete and submit your design pattern. Your article can have only one **H1 heading (#)**, which is the article title. The H1 heading is always followed by a succinct descriptive paragraph that informs the reader what the article is about and how it can help them. Do not start the article with a note or tip. ._
 
-_This template is specific to **Cloud Design Patterns**. Your article should describe the problem that the pattern addresses, identify considerations for applying the pattern, and provide an example based on Microsoft Azure. Most of the patterns include code samples or snippets that show how to implement the pattern on Azure. Your article should be broken down into six subheadings (H2, ## in markdown)--Context and problem, Solution, Issues and considerations, When to use this pattern, Example, and Next steps. The H2 headings and descriptions are included in this template. If you need to create a new heading under one of the H2 headings, use an H3 heading (###)._
+_This template is specific to **Dynamics 365 design patterns**. Your article should describe the problem that the pattern addresses, identify considerations for applying the pattern, and provide an example based on an implementation that includes Dynamics 365 apps. Most of the patterns include code samples or snippets that show how to implement the pattern. Your article should be broken down into six subheadings (H2, ## in markdown)--Context and problem, Solution, Issues and considerations, When to use this pattern, Example, and Next steps. The H2 headings and descriptions are included in this template. If you need to create a new heading under one of the H2 headings, use an H3 heading (###)._
 
 _**Completing the metadata:**_
 _This section provides guidance on completing the metadata section at the top of this template. Update the placeholder text based on the following guidance:_
 
-- _**title:** Use the H1 (#) title of your article from the top of this section. Both titles should be identical. Maximum recommended length is 60 characters._
-- _**description:** Provide a brief summary of your article. This is the description that appears in search engine results, so ensure the summary is clear and concise and attracts your intended audience. Maximum recommended length is 150-160 characters._
+- _**title:** Use the H1 (#) title of your article from the top of this section. Both titles should be identical. Maximum recommended length is 60 characters. If in doubt of the length, copy it to Word, and then use the Word count feature_
+- _**description:** Provide a brief summary of your article. This is the description that appears in search engine results, so ensure the summary is clear and concise and attracts your intended audience. Maximum recommended length is 150-160 characters. If in doubt of the length, copy it to Word, and then use the Word count feature_
 - _**keywords:** Add a comma-separated list of key concepts and terms from your article. These are the words your intended audience will submit in a search engine._
-- _**ms.date:** Enter the date in mm/dd/yyyy format, as shown in the metadata field. Initially this should be the date your article is published. After publication, this field should be refreshed whenever the article is updated so readers can see that the content is fresh._
-- _**pnp.series.title:** Cloud Design Patterns is always the correct patterns and practices series title for this template. Do not change._
-- _**pnp.pattern.categories:** Review the bracketed list that follows and delete all categories that don't apply to your article: [availability, data-management, design-implementation, messaging, management-monitoring, performance-scalability, resiliency, security]. Copy and paste the final bracketed list into the metadata section._
+- _**ms.date:** Enter the date in mm/dd/yyyy format, as shown in the metadata field. Initially this should be the date your article is submitted. After publication, this field should be refreshed whenever the article is updated so readers can see that the content is fresh._
 
 ## Context and problem
 
