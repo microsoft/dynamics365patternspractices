@@ -7,11 +7,19 @@ the rights to use your contribution. For details, visit [https://cla.opensource.
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide
 a CLA and decorate the PR appropriately (such as a status check or comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 
-If you want to contribute with purely conceptual content, use the templates at [https://github.com/MicrosoftDocs/dynamics365-docs-templates](https://github.com/MicrosoftDocs/dynamics365-docs-templates).
+- If you want to contribute with business process content, use the templates at [https://github.com/microsoft/dynamics365patternspractices/tree/main/templates/business-processes](https://github.com/microsoft/dynamics365patternspractices/tree/main/templates/business-processes)  
+
+  Submit your contribution at [https://aka.ms/D365SubmitPnP](https://aka.ms/D365SubmitPnP)
+
+- If you want to contribute with architectural guidance, use the templates at [https://github.com/microsoft/dynamics365patternspractices/tree/main/templates/architecture](https://github.com/microsoft/dynamics365patternspractices/tree/main/templates/architecture)  
+
+  Submit your contribution as a pull request here in this repo. Learn more about getting started in the [Get started](#get-started) section  
+
+- If you want to contribute with purely conceptual content, use the templates at [https://github.com/MicrosoftDocs/dynamics365-docs-templates](https://github.com/MicrosoftDocs/dynamics365-docs-templates)  
 
 Learn more at [https://learn.microsoft.com/dynamics365/get-started/contribute](https://learn.microsoft.com/dynamics365/get-started/contribute).  
 
-### Get started
+## Get started
 
 1. Fork this repo
 
@@ -21,7 +29,7 @@ Learn more at [https://learn.microsoft.com/dynamics365/get-started/contribute](h
 
     GitHub Desktop makes is easy to work and collaborate with repos locally from your own desktop. For more information, see [GitHub Desktop](https://desktop.github.com/).  
 
-3. Choose the relevant template, and copy it to a relevant location on your device. 
+3. Choose the relevant template, and copy it to a relevant location on your device.  
 
   Optionally, use Visual Studio Code and the Microsoft Learn Authoring Pack to author your Markdown files. If you want to submit Word documents with business process content, follow the guidance at [https://learn.microsoft.com/dynamics365/get-started/contribute](https://learn.microsoft.com/dynamics365/get-started/contribute). 
 
