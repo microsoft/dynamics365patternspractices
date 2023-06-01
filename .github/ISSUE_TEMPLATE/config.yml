@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Submit content requests
+    url: https://github.com/microsoft/dynamics365patternspractices/issues
+    about: Choose the right template for your feedback, depending on whether you're registering work or registering a defect.
   - name: Discussions
     url: https://github.com/microsoft/dynamics365patternspractices/discussions
     about: Please ask and answer questions here.
   - name: Email the Microsoft Dynamics 365 Guidance team
-    url: <mailto:bizprocessguide@microsoft.com>
+    url: mailto:bizprocessguide@microsoft.com
     about: For additional support, please email the team.
