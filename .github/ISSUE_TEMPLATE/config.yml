@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussions
+    url: https://github.com/microsoft/dynamics365patternspractices/discussions
+    about: Please ask and answer questions here.
+  - name: Email the Microsoft Dynamics 365 Guidance team
+    url: <mailto:bizprocessguide@microsoft.com>
+    about: For additional support, please email the team.
