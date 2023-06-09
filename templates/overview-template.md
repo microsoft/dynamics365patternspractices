@@ -3,10 +3,11 @@ title: Overview topic template #Required; page title displayed in search results
 description: Overview description #Required; article description that's displayed in search results. Don't enclose in quotation marks. Do end with a period.
 author: edupont04 #Required; your GitHub user alias, with correct capitalization. 
 ms.author: edupont #Required; leave as-is, unless you have a Microsoft alias. 
-ms.reviewer: rachel-profitt #Required; Microsoft alias of content publishing team member.
-ms.service: dynamics-365 #Required. Leave as-is.
+ms.reviewer: edupont #Required; Microsoft alias of content publishing team member.
+ms.service: dynamics-365 #Required. Leave as-is for all things Dynamics 365, but change to dccp for DCCP content.
+ms.subservice: guidance  #Required. Leave as-is.
 ms.topic: overview #Required; don't change.
-ms.date: 01/26/2023 #Required; mm/dd/yyyy format.
+ms.date: 06/09/2023
 ms.custom: bap-template #Required; don't change.
 ---
 
