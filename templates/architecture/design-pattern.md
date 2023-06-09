@@ -2,7 +2,8 @@
 title: Replace this text based on the guidance in Completing the metadata under the Article Title section.   
 description: Replace this text based on the guidance in Completing the metadata under the Article Title section.
 keywords: Replace this text based on the guidance in Completing the metadata under the Article Title section.
-ms.service: dynamics-365
+ms.service: dynamics-365 #Required. Leave as-is for all things Dynamics 365, but change to dccp for DCCP content.
+ms.subservice: guidance  #Required. Leave as-is.
 ms.topic: conceptual
 ms.subservice: design-pattern
 author: #Required; your GitHub user alias, with correct capitalization. 
