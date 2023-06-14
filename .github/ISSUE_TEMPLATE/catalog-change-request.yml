@@ -1,0 +1,99 @@
+name: Business process catalog change request
+description: Use this issue type to register that you would like to request a change to the business process catalog. This can include adding a new row, updating an existing row, or removal of a row.
+title: "[CATALOG]: "
+labels: ["catalog", "triage"]
+assignees:
+  - rachel-profitt
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for contributing to the [Dynamics 365 business process catalog](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/)! Registering your request here is the first step in contributing. Your request will be reviewed and approved. Not all request may be approved. Approved requests will be added to the business process catalog. Find the catalog and templates at [https://github.com/microsoft/dynamics365patternspractices/templates/business-processes](https://github.com/microsoft/dynamics365patternspractices/tree/main/templates/business-processes). If you want to contribute with architectural patterns for Dynamics 365 implementations, use the templates at [https://github.com/microsoft/dynamics365patternspractices/templates/architecture](https://github.com/microsoft/dynamics365patternspractices/tree/main/templates/architecture). We do not recommend starting work on a new article for a new business process catalog row until the catalog request is approved. You can use this request to add new business processes or new patterns and practices to the catalog. Use one issue request for each new row you want to add or update. 
+  - type: input
+    id: contact
+    attributes:
+      label: Contact details
+      description: How can we get in touch with you?
+      placeholder: myemail@example.com
+    validations:
+      required: true
+  - type: dropdown
+    id: organization-type
+    attributes:
+      label: "Organization type"
+      description: Which type of organization do you work for?
+      options:
+        - "Microsoft MVP"
+        - "Partner / ISV / Independant consultant"
+        - "Customer organization"
+        - "Microsoft employee"
+    validations:
+      required: true
+  - type: dropdown
+    id: endtoend
+    attributes:
+      label: "End-to-end business process"
+      description: Which end-to-end business process is the article related to?
+      options:
+        - "Acquire to dispose"
+        - "Case to resolution"
+        - "Forecast to plan"
+        - "Hire to retire"
+        - "Inventory to deliver"
+        - "Order to cash"
+        - "Plan to produce"
+        - "Procure to pay"
+        - "Product and service lifecycle management"
+        - "Project to profit"
+        - "Prospect to quote"
+        - "Record to report"
+        - "Service to cash"
+    validations:
+      required: true
+  - type: input
+    id: area-name
+    attributes:
+      label: "Which business process area is this article related to?" 
+      description: "Make sure you use the same name that is listed in the business process catalog." 
+      value: "Create and manage sales"
+    validations:
+      required: true
+  - type: input
+    id: process-name
+    attributes:
+      label: "Which business process is this article related to?" 
+      description: "Make sure you use the same name that is listed in the business process catalog." 
+      value: "Create a sales order"
+    validations:
+      required: true
+  - type: input
+    id: pattern-name
+    attributes:
+      label: "Enter the name of the pattern or practice you are starting work on" 
+      description: "Make sure you use the same name that is listed in the business process catalog." 
+      value: "Create a sales order in the retail point of sale"
+    validations:
+      required: false
+  - type: textarea
+    id: comments
+    attributes:
+      label: "Add any additional comments or information you want us to know about this business process catalog entry. If this is an update to an existing row in the catalog, please be sure to indicate in the comments."
+      description: "Write your comments"
+      value: "Comments go here"
+    validations:
+      required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/), or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+  - type: markdown
+    attributes:
+      value: "## Thanks!"
+  - type: markdown
+    attributes:
+      value: Thank you for contributing to the [business process guidance](https://learn.microsoft.com/en-us/dynamics365/guidance/). 
+   

@@ -1,0 +1,99 @@
+name: New business process
+description: Use this issue type to indicate that you are beginning work on a new business process article. The business process should already exist in the business process catalog.
+title: "[BUSINESS PROCESS]: "
+labels: ["business process", "triage"]
+assignees:
+  - rachel-profitt
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to the business process guidance! Registering your work here is the first step in contributing. Learn more [here](https://learn.microsoft.com/en-us/dynamics365/get-started/contribute#register-your-work). 
+  - type: input
+    id: contact
+    attributes:
+      label: Contact details
+      description: How can we get in touch with you?
+      placeholder: myemail@example.com
+    validations:
+      required: true
+  - type: dropdown
+    id: organization-type
+    attributes:
+      label: "Organization type"
+      description: Which type of organization do you work for?
+      options:
+        - "Parnter / ISV / Independant consultant"
+        - "Customer organization"
+        - "Microsoft MVP"
+        - "Microsoft employee"
+    validations:
+      required: true
+  - type: dropdown
+    id: endtoend
+    attributes:
+      label: "End-to-end business process"
+      description: Which end-to-end business process is the article related to?
+      options:
+        - "Acquire to dispose"
+        - "Case to resolution"
+        - "Forecast to plan"
+        - "Hire to retire"
+        - "Inventory to deliver"
+        - "Order to cash"
+        - "Plan to produce"
+        - "Procure to pay"
+        - "Product and service lifecycle management"
+        - "Project to profit"
+        - "Prospect to quote"
+        - "Record to report"
+        - "Service to cash"
+    validations:
+      required: true
+  - type: input
+    id: area-name
+    attributes:
+      label: "Which business process area is this article related to?" 
+      description: "Make sure you use the same name that is listed in the business process catalog." 
+      value: "Create and manage sales"
+    validations:
+      required: true
+  - type: input
+    id: process-name
+    attributes:
+      label: "Enter the name of the business process you are starting work on" 
+      description: "Make sure you use the same name that is listed in the business process catalog." 
+      value: "Create a sales order"
+    validations:
+      required: true
+  - type: textarea
+    id: comments
+    attributes:
+      label: "Enter any additional comments or information you want us to know about this business process."
+      description: "Write the comments"
+      value: "Comments go here"
+    validations:
+      required: false
+  - type: input
+    id: expected-date
+    attributes:
+      label: "Specify the date you expect the article to be completed and ready for review." 
+      description: "Please include the month, date, and year in the format mm/dd/yyyy"
+      value: "01/24/2024"
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+  - type: markdown
+    attributes:
+      value: "## Thanks!"
+  - type: markdown
+    attributes:
+      value: Thank you for contributing to the [business process guidance](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/overview)! 
+   
