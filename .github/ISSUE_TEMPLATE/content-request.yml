@@ -1,0 +1,36 @@
+name: Content request
+description: Request a new feature or article for the Dynamics 365 guidance hub
+title: "[CONTENT REQUEST]: "
+labels: ["feature", "triage"]
+assignees:
+  - edupont04
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting this content request. We triage this feedback regularly and use it to plan for future documentation improvements. Not all content requests are implemented, but we'll prioritize based on current work priorities and the tooling available.
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: myemail@example.com
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the type of article or feature on the Microsoft Learn website that you would like to see in the Dynamics 365 guidance documentation
+      description: Also, tell us what you expected to see?
+      placeholder: Tell us what you want to see!
+      value: "A great new feature!"
+    validations:
+      required: true  
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
