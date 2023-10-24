@@ -1,15 +1,13 @@
 ---
-title: 
-description: 
+title: Import the business process catalog into Azure DevOps
+description: Read how you can use Microsoft's business process catalog to build an implementation project in Azure DevOps.
 ms.date: 10/23/2023
 ms.topic: article
-ms.service: 
 author: rachel-profitt
 ms.author: raprofit
-manager: 
 ---
 
-# Importing the business process catalog into Azure DevOps
+# Import the business process catalog into Azure DevOps
 
 This articles describes how you can use the business process catalog as a template to import into an Azure DevOps project for managing your Dynamics 365 implementation project.
 
@@ -19,7 +17,7 @@ There are many reasons why using a tool like Azure DevOps is critical to the ove
 
 - **Efficiency and time savings**: The Microsoft Business Process Catalog provides a standardized and comprehensive list of business processes. This catalog can save customers and partners a significant amount of time that would otherwise be spent on researching, defining, and documenting business processes from scratch.
 
-- **Recommended practices and industry standards**: The documentation that accompanies the catalog which can be found in the Dynamics 365 guidance hub often includes recommended practices and industry-standard business processes. Leveraging these pre-defined processes can help ensure that technology solutions align with recognized industry standards and compliance requirements.
+- **Recommended practices and industry standards**: The documentation that accompanies the catalog which can be found in [the Dynamics 365 guidance hub](https://learn.microsoft.com/en-us/dynamics365/guidance/) often includes recommended practices and industry-standard business processes. Leveraging these pre-defined processes can help ensure that technology solutions align with recognized industry standards and compliance requirements.
 
 - **Reduced risk**: Using established and standardized processes reduces the risk of errors and oversights in the implementation of technology solutions. These processes have often been tried and tested, reducing the chances of costly mistakes.
 
@@ -37,13 +35,13 @@ In conclusion, the Microsoft Business Process Catalog offers customers and partn
 
 Before you can import the project into Azure DevOps, there are a few things that you will need to do and consider. Use the following information as a guide and checklist to ensure that you are ready to import the catalog into Azure DevOps.
 
-1.  Define your project scope. We suggest that you use the spreadsheet as a starting point to define the scope. At the most fundamental level this is done by deleting any rows that are not applicable to your project. For more information and guidance about defining your project scope, refer to [Process-focused solution.](https://learn.microsoft.com/en-us/dynamics365/guidance/implementation-guide/process-focused-solution)
+1. Define your project scope. We suggest that you use the spreadsheet as a starting point to define the scope. At the most fundamental level this is done by deleting any rows that are not applicable to your project.Learn more about defining your project scope at to [Process-focused solution.](https://learn.microsoft.com/en-us/dynamics365/guidance/implementation-guide/process-focused-solution)
 
-2.  [Create an Azure DevOps project](https://learn.microsoft.com/en-us/azure/devops/organizations/projects/create-project?view=azure-devops&tabs=browser) in the customer tenant. The template we have provided is designed to work with the Agile **Work item process type**.
+2. Create an Azure DevOps project in the customer tenant. The template we have provided is designed to work with the Agile **Work item process type**. Learn more at [Create an Azure DevOps project](https://learn.microsoft.com/en-us/azure/devops/organizations/projects/create-project?view=azure-devops&tabs=browser).
 
-3.  Define area paths in the Azure DevOps project settings. For each end-to-end process that is in scope, create one area path. For more information, refer to [Define area paths and assign to a team.](https://learn.microsoft.com/en-us/azure/devops/organizations/settings/set-area-paths?view=azure-devops&tabs=browser)
+3. Define area paths in the Azure DevOps project settings. For each end-to-end process that is in scope, create one area path. Learn more at [Define area paths and assign to a team.](https://learn.microsoft.com/en-us/azure/devops/organizations/settings/set-area-paths?view=azure-devops&tabs=browser).  
 
-4.  Insert any additional rows required for your project. This can include additional Epics, Features, or User stories. Epics use the first Title column, Features use the second Title column, and User stories use the third Title column. To ensure a relationship is established between the rows, the Next Epic or Feature row should not be inserted until all rows that required a relationship to the last Epic or Feature are inserted into the spreadsheet. You may want to consider adding additional work items types too such as Configuration or Workshops for example, but the template provided does not include other work item types.
+4. Insert any additional rows required for your project. This can include additional Epics, Features, or User stories. Epics use the first Title column, Features use the second Title column, and User stories use the third Title column. To ensure a relationship is established between the rows, the Next Epic or Feature row should not be inserted until all rows that required a relationship to the last Epic or Feature are inserted into the spreadsheet. You may want to consider adding additional work items types too such as Configuration or Workshops for example, but the template provided does not include other work item types.
 
 5.  Complete the additional columns in the spreadsheet as required. Use the following recommendations to guide you.
 
@@ -63,27 +61,27 @@ Before you can import the project into Azure DevOps, there are a few things that
 
     8. **Effort** – optionally, you can add a rating for the effort. For example, you may give processes a high effort score that are going to require integration or modification.
 
-6.  Update the **Area path** in the file. You will need to replace the value in the Area path with the exact name of your project and area paths. If you create the areas paths to match the end to end process names, you only need to replace the following text "DevOps Product Catalog Working Instance" with the name of your project in your Area path.
+6. Update the **Area path** in the file. You will need to replace the value in the Area path with the exact name of your project and area paths. If you create the areas paths to match the end to end process names, you only need to replace the following text "DevOps Product Catalog Working Instance" with the name of your project in your Area path.
 
-7.  You can optionally add more columns to the file or remove columns that will not be used prior to importing. If you add custom fields to your Azure DevOps project that are mandatory, be sure to include them in the file or the file may fail to import.
+7. You can optionally add more columns to the file or remove columns that will not be used prior to importing. If you add custom fields to your Azure DevOps project that are mandatory, be sure to include them in the file or the file may fail to import.
 
-8.  Split large files for import. You will need to determine if you need to split your file into multiple files for uploading. Azure DevOps has a limit of 1000 rows that can be uploaded in one import. If your final file has more than 1000 rows you will need to split the file. It is critical that when you split the file, all Epics, Features, and User stories that are related to the same end-to-end process need to be combined into the same file. For example, if row 1000 is in the middle of the Order to Cash process after deleting and inserting any required rows, you will want to split the file at the first row for Order to Cash to ensure that all Order to cash processes are included and the relationships can be established during import. If you are attempting to import the entire catalog, you will need to split the file into four parts for importing.
+8. Split large files for import. You will need to determine if you need to split your file into multiple files for uploading. Azure DevOps has a limit of 1000 rows that can be uploaded in one import. If your final file has more than 1000 rows you will need to split the file. It is critical that when you split the file, all Epics, Features, and User stories that are related to the same end-to-end process need to be combined into the same file. For example, if row 1000 is in the middle of the Order to Cash process after deleting and inserting any required rows, you will want to split the file at the first row for Order to Cash to ensure that all Order to cash processes are included and the relationships can be established during import. If you are attempting to import the entire catalog, you will need to split the file into four parts for importing.
 
-9.  The file must be saved as a CSV file to be imported into Azure DevOps. If you have added extra columns and features into the spreadsheet that you do not want to loose such as formatting or formulas, consider saving a version of the file as an XLSX file in order to not loose those features, but the version you import must be CSV.
+9. The file must be saved as a CSV file to be imported into Azure DevOps. If you have added extra columns and features into the spreadsheet that you do not want to loose such as formatting or formulas, consider saving a version of the file as an XLSX file in order to not loose those features, but the version you import must be CSV.
 
-## Importing the file
+## Import the file
 
 Once you have prepared your file for import and configured the basic setup in the Azure DevOps project with area paths, security, teams, and users, you can import your work items following the steps provided here: [Import update bulk work items with CSV files](https://learn.microsoft.com/en-us/azure/devops/boards/queries/import-work-items-from-csv?view=azure-devops).
 
 ## After you import
 
-After you import the file, you will want to validate the import was successful. If the file import fails, use the messages provided to help guide you to correct the issue and then try again. Once the file is imported successfully you can begin managing your project using the features of Azure DevOps. The following are a few tasks and tips to consider.
+After you import the file, validate the import was successful. If the file import fails, use the messages provided to help guide you to correct the issue and then try again. Once the file is imported successfully you can begin managing your project using the features of Azure DevOps. The following are a few tasks and tips to consider.
 
--   Create a backlog. [Use backlogs to manage projects - Azure Boards \| Microsoft Learn](https://learn.microsoft.com/en-us/azure/devops/boards/backlogs/backlogs-overview?view=azure-devops)
+-   [Use backlogs to manage projects](https://learn.microsoft.com/en-us/azure/devops/boards/backlogs/backlogs-overview?view=azure-devops)
 
--   [Implement Scrum work practices in Azure Boards - Azure Boards \| Microsoft Learn](https://learn.microsoft.com/en-us/azure/devops/boards/sprints/scrum-overview?view=azure-devops)
+-   [Implement Scrum work practices in Azure Boards](https://learn.microsoft.com/en-us/azure/devops/boards/sprints/scrum-overview?view=azure-devops)
 
--   Create queries to manage the work. [Use managed queries to list work items - Azure Boards \| Microsoft Learn](https://learn.microsoft.com/en-us/azure/devops/boards/queries/about-managed-queries?view=azure-devops)
+-   [Use managed queries to list work items](https://learn.microsoft.com/en-us/azure/devops/boards/queries/about-managed-queries?view=azure-devops)
 
--   Analyze your projects progress. [Analytics & Reporting - Azure DevOps \| Microsoft Learn](https://learn.microsoft.com/en-us/azure/devops/report/?view=azure-devops)
+-   [Analytics & Reporting](https://learn.microsoft.com/en-us/azure/devops/report/?view=azure-devops)
 
