@@ -36,14 +36,16 @@ body:
       description: Which end-to-end business process is the article related to?
       options:
         - "Acquire to dispose"
+        - "Administer to operate"
         - "Case to resolution"
+        - "Concept to market"
+        - "Design to retire"
         - "Forecast to plan"
         - "Hire to retire"
         - "Inventory to deliver"
         - "Order to cash"
         - "Plan to produce"
         - "Procure to pay"
-        - "Product and service lifecycle management"
         - "Project to profit"
         - "Prospect to quote"
         - "Record to report"
@@ -69,19 +71,19 @@ body:
   - type: input
     id: pattern-name
     attributes:
-      label: "Enter the name of the pattern or practice you are starting work on" 
-      description: "Make sure you use the same name that is listed in the business process catalog." 
+      label: "Which pattern or practice is this request related to" 
+      description: "Make sure you use the same name that is listed in the business process catalog. If this is a new pattern or practice, enter the suggested name for the pattern or practice." 
       value: "Create a sales order in the retail point of sale"
     validations:
       required: false
   - type: textarea
     id: comments
     attributes:
-      label: "Add any additional comments or information you want us to know about this business process catalog entry. If this is an update to an existing row in the catalog, please be sure to indicate in the comments."
+      label: "Please describe the suggested change. If this is an update to an existing row in the catalog, please be sure to indicate in the comments."
       description: "Write your comments"
       value: "Comments go here"
     validations:
-      required: false
+      required: true
   - type: checkboxes
     id: terms
     attributes:
