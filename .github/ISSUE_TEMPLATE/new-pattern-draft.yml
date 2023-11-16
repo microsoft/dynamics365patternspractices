@@ -36,14 +36,16 @@ body:
       description: Which end-to-end business process is the article related to?
       options:
         - "Acquire to dispose"
+        - "Administer to operate"
         - "Case to resolution"
+        - "Concept to market"
+        - "Design to retire"
         - "Forecast to plan"
         - "Hire to retire"
         - "Inventory to deliver"
         - "Order to cash"
         - "Plan to produce"
         - "Procure to pay"
-        - "Product and service lifecycle management"
         - "Project to profit"
         - "Prospect to quote"
         - "Record to report"
@@ -77,7 +79,7 @@ body:
   - type: textarea
     id: comments
     attributes:
-      label: "Add any additional comments or information you want us to know about this pattern or practice."
+      label: "Enter any additional comments or information you want us to know about this pattern or practice."
       description: "Write your comments"
       value: "Comments go here"
     validations:
