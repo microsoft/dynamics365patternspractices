@@ -71,8 +71,8 @@ body:
   - type: input
     id: pattern-name
     attributes:
-      label: "Enter the name of the pattern or practice you are starting work on" 
-      description: "Make sure you use the same name that is listed in the business process catalog." 
+      label: "Which pattern or practice is this request related to?" 
+      description: "Enter the name of the pattern or practice you are starting work on. Make sure you use the same name that is listed in the business process catalog." 
       value: "Create a sales order in the retail point of sale"
     validations:
       required: true
