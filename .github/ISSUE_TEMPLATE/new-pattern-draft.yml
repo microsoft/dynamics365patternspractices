@@ -79,7 +79,7 @@ body:
   - type: textarea
     id: comments
     attributes:
-      label: "Enter any additional comments or information you want us to know about this pattern or practice."
+      label: "Enter any additional comments or information you want us to know."
       description: "Write your comments"
       value: "Comments go here"
     validations:
