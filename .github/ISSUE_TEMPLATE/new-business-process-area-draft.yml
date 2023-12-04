@@ -55,7 +55,7 @@ body:
   - type: input
     id: area-name
     attributes:
-      label: "Specify the business process area name for the article." 
+      label: "Which business process area is this article related to?" 
       description: "Make sure to use the same name that is listed in the business process catalog." 
       value: "Create and manage sales"
     validations:
