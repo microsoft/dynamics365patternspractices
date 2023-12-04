@@ -63,7 +63,7 @@ body:
   - type: textarea
     id: comments
     attributes:
-      label: "Enter any additional comments or information you want us to know about this business process area."
+      label: "Enter any additional comments or information you want us to know."
       description: "Write the comments"
       value: "Comments go here"
     validations:
