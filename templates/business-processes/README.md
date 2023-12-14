@@ -1,0 +1,1 @@
+If you have landed on this page looking for the business process catalog, you can find the catalog on the Microsoft Download Center by navigating to [https://aka.ms/businessprocesscatalog](https://aka.ms/businessprocesscatalog)
