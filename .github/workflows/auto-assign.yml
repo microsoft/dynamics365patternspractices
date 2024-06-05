@@ -1,0 +1,40 @@
+name: Automatic Issue Assignment
+on:
+  issues:
+    types: [opened]
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Assign issue based on business process
+      uses: actions/github-script@v5
+      with:
+        script: |
+          const issueBody = context.payload.issue.body;
+          const processMap = {
+            //'Acquire to dispose': 'Harshad',
+            //'Administer to operate': 'Harsh',
+            //'Case to resolution': 'Vinoth',
+            //'Concept to market': 'Jinal',
+            //'Design to retire': 'Alejandra',
+            'Forecast to plan': 'riblack-microsoft',
+            //'Hire to retire': 'Priyanka',
+            //'Inventory to deliver': 'Nicole',
+            //'Order to cash': 'Nikhil',
+            //'Plan to produce': 'Phillip',
+            'Procure to pay': 'AdiVijayashankar',
+            //'Project to profit': 'Lalitha',
+            //'Prospect to quote': 'Kody',
+            'Record to report': 'kgiardini',
+            'Service to cash': 'Dean-Hardy'
+          };
+          const selectedProcess = /End-to-End Business Process.*\n.*\[(.*)\]/.exec(issueBody)[1].trim();
+          const assignee = processMap[selectedProcess];
+          if (assignee) {
+            github.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              assignees: [assignee]
+            });
+
