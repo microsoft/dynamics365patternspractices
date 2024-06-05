@@ -28,7 +28,7 @@ jobs:
             'Record to report': 'kgiardini',
             'Service to cash': 'Dean-Hardy'
           };
-          const selectedProcess = /End-to-End Business Process.*\n.*\[(.*)\]/.exec(issueBody)[1].trim();
+          const selectedProcess = /End-to-End Business Process*\n.*\[(.*)\]/.exec(issueBody)[1].trim();
           const assignee = processMap[selectedProcess];
           if (assignee) {
             github.issues.addAssignees({
