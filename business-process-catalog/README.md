@@ -11,6 +11,8 @@ We've structured our business process content into four levels:
 
 Learn more at [About business processes](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/about).
 
+Learn more about what's new in this version of the Microsoft Business Process Catalog see [What's new or changed in the business process catalog](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/about-whats-new).
+
 ## Supported Operating Systems
 
 Windows 11, Windows 10, Macintosh
