@@ -1,7 +1,7 @@
 
 
 # Workshops templates
-The May release of the business process catalog introduces a comprehensive set of workshop templates designed to streamline collaboration and decision-making across key business areas. These templates are structured to enhance engagement and ensure precise alignment with business goals. Below, you’ll find the core structure of the workshops, a detailed list of processes that include workshops in this release, and an overview of the three distinct workshop types: Storyboard, Storyline Design Review, and Deep-Dive Design.
+The business process catalog includes comprehensive set of workshop templates designed to streamline collaboration and decision-making across key business areas. These templates are structured to enhance engagement and ensure precise alignment with business goals. Below, you’ll find the core structure of the workshops, a detailed list of processes that include workshops in this release, and an overview of the three distinct workshop types: Storyboard, Storyline Design Review, and Deep-Dive Design.
 
 ## Workshop template structure
 Each workshop template includes:
