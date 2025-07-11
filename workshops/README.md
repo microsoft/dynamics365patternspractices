@@ -18,7 +18,8 @@ The following end-to-end processes include Word document templates for the busin
 -	Forecast to plan
 -	Inventory to deliver
 -	Hire to retire
-- Order to cash 
+- Order to cash
+- Prospect to quote (Public Preview)
 - Source to pay
 
 ## Workshop types
