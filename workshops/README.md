@@ -12,7 +12,7 @@ Each workshop template includes:
 The templates are designed to be flexible and scalable, accommodating the unique needs of sellers, technical sellers, solution architects, and business analysts or functional consultants.
 
 ## Processes featuring workshops 
-The following end-to-end processes include Word document tempaltes for the business process catalog
+The following end-to-end processes include Word document templates for the business process catalog
 - Acquire to dispose
 -	Design to retire
 -	Forecast to plan
