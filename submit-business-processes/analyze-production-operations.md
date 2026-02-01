@@ -30,8 +30,8 @@ Many people across the organization should contribute to the decision-making pro
 
 ## Analyze production operations process flow 
 The following diagram illustrates the Analyze production operations business process area. Each solid gray rectangle on the diagram represents an end-to-end business process. The solid blue rectangle represents the business process area. The diagram shows the subprocesses for the business process area. The arrows on the diagram show the flow of the business process in an organization. If a subprocess can lead to more than one other subprocess, the parallel subprocesses are shown as branches.
-![image](submit-business-processes/analyze-production-operations-flow/Slide1.PNG)
-[Download a PowerPoint file](submit-business-processes/analyze-production-operations-flow.pptx)
+![image](analyze-production-operations-flow/Slide1.PNG)
+[Download a PowerPoint file](analyze-production-operations-flow.pptx)
 
 ## Analyze production operations
 The following steps are illustrated in the Analyze production operations business process flow diagram.
