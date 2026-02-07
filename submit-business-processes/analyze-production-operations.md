@@ -73,7 +73,7 @@ By analyzing production cost, production quality results and the environmental i
 
 ## Next steps
 If you would like to implement Dynamics 365 solutions to assist with your Analyze production operations business processes, you can use the following resources and steps to learn more.
-1. [Plan to produce]
+1. [Plan to produce](https://learn.microsoft.com/dynamics365/guidance/business-processes/plan-to-produce-introduction)
 2. [Develop production strategies](https://learn.microsoft.com/dynamics365/guidance/business-processes/plan-to-produce-define-production-strategies)
 3. [Plan production operations](https://learn.microsoft.com/dynamics365/guidance/business-processes/plan-to-produce-plan-production-operations-overview)
 4. [Run production operations](https://learn.microsoft.com/dynamics365/guidance/business-processes/plan-to-produce-execute-production-operations-overview)
@@ -108,5 +108,5 @@ You can use the following resources to learn more about the Analyze production o
 ## Contributors
 This article is maintained by Microsoft. It was originally written by the following contributors.
 Principal author:
-• [Christelle Michel](http://www.linkedin.com/in/christelle-michel)| FastTrack Solution Architect
+• [Christelle Michel](http://www.linkedin.com/in/christelle-michel)| Solution Architect
 
