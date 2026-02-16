@@ -14,9 +14,9 @@ ms.date: 02/16/2026
 This solution architecture enables end‑to‑end concession pass management by combining applicant self‑service with centralized case management and order processing. A secure digital portal supports applications, evidence submission, status tracking, and renewals, while backend automation and low‑code workflows deliver a scalable, secure, and operationally efficient concession pass lifecycle.
 
 ## Architecture
-![Architecture diagram](../architectures/Concession-pass-management-solution-architecture.jpg)
+![Architecture diagram](https://raw.githubusercontent.com/Aish-SA/dynamics365patternspractices/main/architectures/Concession-pass-management-solution-architecture.jpg)
 
-<br> Download a [Visio file](../architectures/Concession-pass-management-solution-architecture.vsdx) with this architecture.</br>
+<br> Download a [Visio file](https://raw.githubusercontent.com/Aish-SA/dynamics365patternspractices/main/architectures/Concession-pass-management-solution-architecture.vsdx) with this architecture.</br>
 
 ### Workflow
 #### 1. Applicant Management
