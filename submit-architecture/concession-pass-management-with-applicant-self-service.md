@@ -16,7 +16,7 @@ This solution architecture enables end‑to‑end concession pass management by 
 ## Architecture
 ![Architecture diagram](https://raw.githubusercontent.com/Aish-SA/dynamics365patternspractices/main/architectures/Concession-pass-management-solution-architecture.jpg)
 
-<br> Download a [Visio file](https://raw.githubusercontent.com/Aish-SA/dynamics365patternspractices/main/architectures/Concession-pass-management-solution-architecture.vsdx) with this architecture.</br>
+Download a [Visio file](https://raw.githubusercontent.com/Aish-SA/dynamics365patternspractices/main/architectures/Concession-pass-management-solution-architecture.vsdx) with this architecture.
 
 ### Workflow
 #### 1. Applicant Management
