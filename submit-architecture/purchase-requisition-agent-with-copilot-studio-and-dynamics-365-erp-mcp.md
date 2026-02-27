@@ -51,7 +51,7 @@ The following components are used in the reference architecture:
 - **[Microsoft Copilot Studio](https://learn.microsoft.com/microsoft-copilot-studio/)** is used to build the conversational agent and to securely invoke Dynamics 365 ERP MCP for delegated operations.
 - **[Dynamics 365 ERP MCP](https://learn.microsoft.com/dynamics365/fin-ops-core/dev-itpro/copilot/copilot-mcp)** provides a dynamic framework for agents to perform data operations and access the business logic of Dynamics 365 Supply Chain Management app, without requiring customers to build or maintain custom APIs, connectors, or middleware
 - **[Microsoft Teams](https://learn.microsoft.com/microsoftteams/)** is used as the primary end user conversational channel for initiating and confirming purchase requisition creation.
-- **[Microsoft Entra ID]** (formerly Azure AD) serves as the identity and access control plane across the agent, user channel, and ERP by authenticating users, issuing tokens, enforcing access controls, and ensuring that all actions executed through MCP run under the user’s delegated identity with Dynamics 365 Supply Chain Management role based permissions.
+- **Microsoft Entra ID** (formerly Azure AD) serves as the identity and access control plane across the agent, user channel, and ERP by authenticating users, issuing tokens, enforcing access controls, and ensuring that all actions executed through MCP run under the user’s delegated identity with Dynamics 365 Supply Chain Management role based permissions.
 - **[Power Automate](https://learn.microsoft.com/power-automate/)** is used to send informational purchase requisition status notifications from Dynamics 365 Supply Chain Management to Microsoft Teams.
 
 ## Scenario Details
