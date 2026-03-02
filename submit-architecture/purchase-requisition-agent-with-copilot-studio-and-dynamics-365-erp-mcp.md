@@ -26,9 +26,9 @@ Key stakeholders involved in this solution include representatives from Procurem
 ## Architecture
 
 The following diagram illustrates the functional and application architecture for the solution.
-![image](purchase-requisition-agent-with-copilot-studio-and-dynamics-365-erp-mcp-reference-architecture/Slide1.PNG)
+![image](pr-agent-with-copilot-studio-and-dynamics-365-erp-mcp-reference-architecture/Slide1.PNG)
 
-[Download a PowerPoint](purchase-requisition-agent-with-copilot-studio-and-dynamics-365-erp-mcp-reference-architecture.pptx) file with this architecture.
+[Download a PowerPoint](pr-agent-with-copilot-studio-and-dynamics-365-erp-mcp-reference-architecture.pptx) file with this architecture.
 
 The diagram illustrates how users access conversational channels such as Microsoft Teams to engage with a Microsoft Copilot Studio agent. The agent interacts with Dynamics 365 Supply Chain Management through the Dynamics 365 ERP MCP to create purchase requisition headers and lines and submit them to the standard Dynamics 365 Supply Chain Management approval workflow. Approval processing is handled natively within Dynamics 365 Supply Chain Management, while Power Automate sends informational approval status notifications to Microsoft Teams. Identity and user consent are managed through Microsoft Entra ID.
 
