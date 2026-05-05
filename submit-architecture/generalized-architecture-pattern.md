@@ -1,7 +1,6 @@
 ﻿
 
-# Article title as a noun phrase
-
+# Title 
 *GMS MailBox Agent*
 
 This solution is a generalized architecture pattern, which can be used for many different scenarios and industries. See the following example solutions that build off of this core architecture:
@@ -286,17 +285,16 @@ variables:
   ArtifactName: 'drop'
 
 steps:
-# 1) Install Power Platform Build Tools (must be first)
+1) Install Power Platform Build Tools (must be first)
 - task: microsoft-IsvExpTools.PowerPlatform-BuildTools.tool-installer.PowerPlatformToolInstaller@2
   displayName: 'Power Platform Tool Installer'
   inputs:
-    AddToolsToPath: true
-# Tool Installer requirement + YAML snippet is documented by Microsoft. [2](https://learn.microsoft.com/en-us/power-platform/alm/devops-build-tool-tasks)
+    AddToolsToPath: true 
+- Tool Installer requirement + YAML snippet is documented by Microsoft. [2](https://learn.microsoft.com/en-us/power-platform/alm/devops-build-tool-tasks)
 
-# 2) (Optional) Verify connectivity early (WhoAmI)
-# Microsoft notes WhoAmI can be used to verify connection early. [2](https://learn.microsoft.com/en-us/power-platform/alm/devops-build-tool-tasks)
-
-# 3) Export solution from DEV
+2) (Optional) Verify connectivity early (WhoAmI)
+Microsoft notes WhoAmI can be used to verify connection early. [2](https://learn.microsoft.com/en-us/power-platform/alm/devops-build-tool-tasks)
+ 3) Export solution from DEV
 - task: PowerPlatformExportSolution@2
   displayName: 'Export solution (unmanaged) from DEV'
   inputs:
@@ -306,10 +304,10 @@ steps:
     SolutionOutputFile: '$(Build.ArtifactStagingDirectory)\$(SolutionName)_unmanaged.zip'
     Managed: false
 
-# 4) (Optional) Run Solution Checker / static analysis
-# Build Tools support static analysis checks using Power Apps checker service. [1](https://learn.microsoft.com/en-us/power-platform/alm/devops-build-tools)[7](https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools)
+4) (Optional) Run Solution Checker / static analysis
+Build Tools support static analysis checks using Power Apps checker service. [1](https://learn.microsoft.com/en-us/power-platform/alm/devops-build-tools)[7](https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools)
 
-# 5) Publish artifact
+5) Publish artifact
 - publish: '$(Build.ArtifactStagingDirectory)'
   artifact: '$(ArtifactName)'
 
