@@ -1,0 +1,34 @@
+---
+title: Overview topic template #Required; page title displayed in search results. Don't enclose in quotation marks. 
+description: Overview description #Required; article description that's displayed in search results. Don't enclose in quotation marks. Do end with a period.
+author: rhanajoy #Required; your GitHub user alias, with correct capitalization. 
+ms.author: rhcassid #Required; your Microsoft alias; optional team alias. 
+ms.reviewer: kfend #Required; Microsoft alias of content publishing team member.
+ms.topic: overview #Required; don't change.
+ms.collection: get-started #Required; If this isn't a getting started article, don't remove the attribute, but leave the value blank. The values for this attribute will be updated over time.
+ms.date: 08/10/2022 #Required; mm/dd/yyyy format.
+ms.custom: bap-template #Required; don't change.
+---
+
+
+# What is GMS Mailbox Agent?
+
+The GMS Mailbox Agent is an agent first, D365 native capability designed to help Global Mobility Services teams manage high volume engagement mailboxes by improving email classification, SLA aware prioritization, routing recommendations, and response drafting—while ensuring mandatory human review before any client communication is sent. The solution uses Dynamics 365 Customer Service as the system of record for case creation and lifecycle management, with Microsoft Dataverse providing a secure and auditable data layer for engagement scoped email content, AI outputs, and operational logs. Microsoft Copilot Studio acts as the reasoning layer (classification/prioritization/drafting), and Power Automate provides reliable event driven orchestration and guaranteed processing—ensuring the agent augments operations without replacing governance or control how the section contributes to the whole.
+Operationally, the end to end process begins when an email is received and ingested into D365, creating or updating a case. A Power Automate cloud flow triggers on case creation to persist email metadata/content to Dataverse, invoke Copilot Studio agent actions for classification and prioritization, then run SLA evaluation logic (commonly via child flows) to compute urgency and SLA risk. When a response is needed, a second agent action generates a draft reply using engagement scoped historical context (prior mailbox threads, similar cases, approved templates/rules), and the draft plus evidence references are stored back in Dataverse. Users review and approve the draft inside the D365 model driven experience; only after explicit approval is the reply sent—ensuring the agent never sends client emails autonomously.
+Security and compliance are enforced through defense in depth: users authenticate to D365 and are authorized via role based access control (RBAC), while Dataverse row level security enforces engagement boundaries (e.g., EngagementID scoping) for all data access. Copilot Studio does not bypass these controls; instead, the agent accesses data via scoped actions that retrieve only engagement permitted records and write back results under the same security constraints. This architecture provides strong auditability (classification decisions, confidence scores, overrides, SLA updates, draft approvals) and supports regulated operating requirements by ensuring the AI layer is governed, bounded, and human validated.
+
+## Solution Architecture
+
+The logical architecture describes the end to end solution components and how they interact at a high level. Inbound emails are received in the engagement shared mailbox and ingested into Dynamics 365 Customer Service, where a case/activity record is created as the system-of-record entry point. A Power Automate cloud flow is triggered by case creation to orchestrate downstream processing. The flow persists normalized email content, metadata, and processing status into Microsoft Dataverse, and then invokes Microsoft Copilot Studio agent actions for AI reasoning (classification, prioritization, and response drafting). The Copilot agent reads only engagement-scoped records from Dataverse and writes back structured outputs (category, priority, confidence, draft text, evidence references). Finally, the D365 Model Driven UX surfaces these AI outputs to users for review, editing, approval, and case completion—ensuring the operational work remains within D365 while AI remains advisory and governed.
+The sequence diagram explains the runtime behavior and order of execution. An external sender submits an email to the shared mailbox, after which D365 Customer Service ingests the message and creates a case. A Power Automate parent flow triggers on the case creation event, stamps/derives the engagement context, and stores the email record (and any extracted content) into Dataverse for traceability. The flow then calls a Copilot Studio agent action to perform email classification and intent detection, returning a category recommendation, confidence score, and routing/prioritization signals. Next, SLA logic is applied (commonly via a child flow) to compute SLA risk and update priority/escalation flags. If a response is required, the orchestration calls a second Copilot Studio action to generate a draft response using engagement-scoped history (similar cases/prior replies/templates), and stores the draft plus evidence references in Dataverse. The user then reviews the draft inside D365 (Model Driven App), edits if needed, and explicitly approves before sending. No email is ever sent autonomously by the agent; the final send and case status update are user driven, and all key actions are logged for audit.
+
+
+## Next steps
+
+The detailed architecture would cover:
+1. Logical architecture diagram with components and interactions
+2. Sequence diagram showing runtime behavior and order of execution
+3. Data model overview (key tables/entities and relationships)
+4. Security and compliance controls (authentication, authorization, data access, audit)
+5. AI model details (training data, features, performance metrics, limitations)
+6. Infrastructure and Network Components (hosting, scaling, monitoring)
