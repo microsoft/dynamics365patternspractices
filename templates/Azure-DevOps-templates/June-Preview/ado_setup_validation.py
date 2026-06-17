@@ -207,6 +207,3 @@ def validate_phase(phase_number: int, config: AdoSetupConfig) -> None:
     validator = validators.get(phase_number)
     if validator:
         validator(config)
-
-
-

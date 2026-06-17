@@ -83,14 +83,14 @@ locked_layout_wits: set[str] = set()
 def make_request_with_retry(method, url, max_retries=3, retry_delay=2, **kwargs):
     """
     Makes an HTTP request with retry logic for transient errors.
-    
+
     Args:
         method: HTTP method ('GET', 'POST', 'PATCH', 'PUT', 'DELETE')
         url: Request URL
         max_retries: Maximum retry attempts
         retry_delay: Initial delay in seconds (exponential backoff)
         **kwargs: Additional arguments to pass to requests (headers, json, etc.)
-    
+
     Returns:
         Response object
     """
@@ -109,7 +109,7 @@ def make_request_with_retry(method, url, max_retries=3, retry_delay=2, **kwargs)
                 resp = requests.delete(url, **kwargs)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
-            
+
             # Handle rate limiting and service unavailability
             if resp.status_code in (429, 503, 504):
                 if attempt < max_retries - 1:
@@ -117,9 +117,9 @@ def make_request_with_retry(method, url, max_retries=3, retry_delay=2, **kwargs)
                     log(f" Service unavailable (status {resp.status_code}). Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{max_retries})")
                     time.sleep(wait_time)
                     continue
-            
+
             return resp
-            
+
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:
                 wait_time = retry_delay * (2 ** attempt)
@@ -127,7 +127,7 @@ def make_request_with_retry(method, url, max_retries=3, retry_delay=2, **kwargs)
                 time.sleep(wait_time)
             else:
                 raise
-    
+
     return resp
 
 
@@ -529,9 +529,9 @@ def add_page_if_missing(wit_ref_name: str, process_id: str, page_label: str, ord
     url = f"{ADO_ORG_URL}/_apis/work/processes/{process_id}/workItemTypes/{wit_ref_name}/layout/pages?api-version=7.1-preview.1"
     payload = {"label": page_label, "order": order, "visible": True, "inherited": True}
     log(f" Creating page '{page_label}' on '{wit_ref_name}' with payload: {json.dumps(payload)}")
-    
+
     resp = make_request_with_retry('POST', url, headers=headers, json=payload)
-    
+
     if resp.status_code in [200, 201]:
         invalidate_layout_cache(wit_ref_name)
         pid = resp.json().get("id")
@@ -557,7 +557,7 @@ def add_group_if_missing(wit_ref_name: str, process_id: str, page_id: str, secti
     layout = get_layout(wit_ref_name, process_id)
     if layout is None:
         return None
-    
+
     group_id, found_section_id = ensure_group_on_page(layout, page_id, group_label)
     if group_id:
         if found_section_id == section_id:
@@ -569,9 +569,9 @@ def add_group_if_missing(wit_ref_name: str, process_id: str, page_id: str, secti
     url = f"{ADO_ORG_URL}/_apis/work/processes/{process_id}/workItemTypes/{wit_ref_name}/layout/pages/{page_id}/sections/{section_id}/groups?api-version=7.1-preview.1"
     payload = {"label": group_label, "visible": True, "inherited": True}
     log(f" Creating group '{group_label}' in section '{section_id}' on page '{page_id}' with payload: {json.dumps(payload)}")
-    
+
     resp = make_request_with_retry('POST', url, headers=headers, json=payload)
-    
+
     if resp.status_code in [200, 201]:
         invalidate_layout_cache(wit_ref_name)
         layout = get_layout(wit_ref_name, process_id, force_refresh=True)
@@ -630,7 +630,7 @@ def add_control_if_missing(wit_ref_name: str, process_id: str, page_id: str, sec
     if layout is None:
         log(f" Skipping control '{label}' on '{wit_ref_name}' because layout is unavailable")
         return
-    
+
     found_group = False
     for page in layout.get("pages", []):
         if page.get("id") == page_id:
@@ -669,7 +669,7 @@ def add_control_if_missing(wit_ref_name: str, process_id: str, page_id: str, sec
         f"in section '{section_id}'")
 
     resp = make_request_with_retry('POST', url, headers=headers, json=payload)
-    
+
     if resp.status_code in [200, 201]:
         invalidate_layout_cache(wit_ref_name)
         log(f" Added control '{label}' ({field_ref_name}) to group '{group_id}' on page '{page_id}' "
@@ -879,14 +879,14 @@ def add_html_control_as_own_group(wit_ref_name: str, process_id: str, page_id: s
     return False
 
 
-def process_work_item_type(wit_row, process_id: str, field_labels: list, reference_names: dict, 
-                           field_name_map: dict, field_types: dict, picklist_names: dict, required_flags: dict, 
+def process_work_item_type(wit_row, process_id: str, field_labels: list, reference_names: dict,
+                           field_name_map: dict, field_types: dict, picklist_names: dict, required_flags: dict,
                            default_values: dict, field_layout_map: dict, existing_fields: dict,
                            process_wit_map: dict) -> dict:
     """
     Process a single work item type - adds fields and updates layout.
     This function is designed to run in a separate thread.
-    
+
     Returns:
         dict with 'wit_name', 'status', 'fields_added', 'errors'
     """
@@ -896,14 +896,14 @@ def process_work_item_type(wit_row, process_id: str, field_labels: list, referen
         'fields_added': 0,
         'errors': []
     }
-    
+
     try:
         custom_type_flag = safe_json_value(wit_row.get("Custom work item type")).strip().lower()
         wit_name_raw = safe_json_value(wit_row.get("Work item type")).strip()
         wit_ref_name_excel = safe_json_value(wit_row.get("Reference name")).strip()
-        
+
         result['wit_name'] = wit_name_raw
-        
+
         wit_ref_name = resolve_process_wit_reference(wit_name_raw, wit_ref_name_excel, custom_type_flag, process_wit_map)
         wit_process_api_id = resolve_wit_process_api_identifier(wit_name_raw, wit_ref_name, process_wit_map)
 
@@ -1001,11 +1001,11 @@ def process_work_item_type(wit_row, process_id: str, field_labels: list, referen
                 if wit_ref_name in locked_layout_wits:
                     log(f" Skipping layout updates for '{wit_ref_name}' because its layout is locked.")
                     continue
-            
+
             if field_type.lower() == "html" and not ADD_HTML_LAYOUT_CONTROLS:
                 log(f" SKIPPED: HTML field '{field_label}' ({ref_name}) because BPC_ADO_ADD_HTML_LAYOUT_CONTROLS is disabled.")
                 continue
-            
+
             page_name = safe_json_value(field_layout_info["Page name"])
             group_sequence = int(field_layout_info["Group sequence"]) if not pd.isna(field_layout_info["Group sequence"]) else 1
             group_name = safe_json_value(field_layout_info["Group name"])
@@ -1048,7 +1048,7 @@ def process_work_item_type(wit_row, process_id: str, field_labels: list, referen
                     continue
                 result['errors'].append(f"Failed to add HTML control '{field_label}'")
                 continue
-           
+
             # 3) Check if group exists
             existing_group = ensure_group_on_page(layout, page_id, group_name)
             if existing_group:
@@ -1089,12 +1089,12 @@ def process_work_item_type(wit_row, process_id: str, field_labels: list, referen
             )
 
         log(f"[Thread] Finished processing WIT '{wit_name_raw}'")
-        
+
     except Exception as e:
         result['status'] = 'error'
         result['errors'].append(str(e))
         log(f"[Thread] ERROR processing WIT: {e}")
-    
+
     return result
 
 
@@ -1113,16 +1113,16 @@ if not os.path.exists(excel_path):
 # === Main flow ===
 def main():
     start_time = time.time()
-    
+
     log("=" * 60)
     log("Starting MULTITHREADED Azure DevOps script")
     log(f"Max parallel workers: {MAX_WORKERS}")
     log("=" * 60)
-    
+
     log(f"Looking up process: {PROCESS_NAME}")
     process_id = get_process_id_by_name(PROCESS_NAME)
     log(f"Found process ID: {process_id}")
-    
+
     log(f"Reading spreadsheet: {EXCEL_FILE}")
 
     # Read Excel sheets
@@ -1223,7 +1223,7 @@ def main():
                 default_values, field_layout_map, existing_fields, process_wit_map
             ): wit_row for wit_row in wit_rows
         }
-        
+
         # Collect results as they complete
         completed = 0
         for future in as_completed(future_to_wit):
@@ -1241,12 +1241,12 @@ def main():
     log("=" * 60)
     log("SUMMARY")
     log("=" * 60)
-    
+
     successful = sum(1 for r in results if r['status'] == 'success')
     skipped = sum(1 for r in results if r['status'] == 'skipped')
     failed = sum(1 for r in results if r['status'] == 'error')
     total_fields_added = sum(r.get('fields_added', 0) for r in results)
-    
+
     log(f"Total work item types: {total_wits}")
     log(f"  Successful: {successful}")
     log(f"  Skipped: {skipped}")
@@ -1254,13 +1254,13 @@ def main():
     log(f"Total fields added: {total_fields_added}")
     log(f"Elapsed time: {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
     log("=" * 60)
-    
+
     if failed > 0:
         log("Failed work item types:")
         for r in results:
             if r['status'] == 'error':
                 log(f"  - {r['wit_name']}: {', '.join(r['errors'])}")
-    
+
     log("Script finished. See log file for details:")
     log(f"  {LOG_FILE}")
 
@@ -1268,6 +1268,3 @@ def main():
 if __name__ == "__main__":
     log(f"Starting Script 2. Log file: {LOG_FILE}")
     main()
-
-
-

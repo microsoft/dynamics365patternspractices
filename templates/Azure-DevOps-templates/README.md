@@ -57,4 +57,3 @@ June-Preview\ADO template guideline (June Preview).xlsx
 ```
 
 For long catalog imports, use a dev box or other stable Windows environment and start with 2-8 parallel workers before increasing the worker count.
-

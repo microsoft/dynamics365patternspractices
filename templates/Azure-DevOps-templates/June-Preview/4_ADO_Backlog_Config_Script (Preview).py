@@ -301,7 +301,7 @@ def assign_wits_to_backlogs(process_id: str, wit_df: pd.DataFrame,
 
     # Build the default WIT lookup from Backlogs sheet (passed via backlog_to_behavior_ref context)
     # We need the backlogs_df for default WIT info — it's passed indirectly via the global scope
-    
+
     assigned_count = 0
     skipped_count = 0
     error_count = 0
@@ -794,6 +794,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

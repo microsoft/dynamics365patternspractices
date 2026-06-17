@@ -36,7 +36,3 @@ def _split_expected(line: str) -> tuple[str, str | None]:
             left, right = parts
             return left.strip(), right.strip()
     return line, None
-
-
-
-

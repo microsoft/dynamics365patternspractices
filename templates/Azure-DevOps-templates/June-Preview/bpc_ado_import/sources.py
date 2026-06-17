@@ -97,7 +97,3 @@ def _looks_like_secondary_header(headers: list[str], values: tuple[Any, ...]) ->
 def _header_base(value: str) -> str:
     value = re.sub(r"\s+ms\s+bpc$", "", value.strip(), flags=re.IGNORECASE)
     return " ".join(value.lower().split())
-
-
-
-

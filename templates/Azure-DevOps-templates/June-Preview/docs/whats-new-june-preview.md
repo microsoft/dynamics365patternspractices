@@ -133,6 +133,3 @@ Before publishing broadly:
 3. Review `bpc-ado-setup-summary.html`.
 4. Confirm unresolved failures are zero.
 5. Spot-check ADO work item hierarchy, area paths, teams, Test Cases, and report links.
-
-
-

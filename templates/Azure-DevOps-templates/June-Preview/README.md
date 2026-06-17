@@ -122,7 +122,3 @@ Phase 6 creates a self-contained HTML report in the project output folder. The r
 - [What's new in June Preview](docs/whats-new-june-preview.md)
 - [June Preview user guide](docs/user-guide-june-preview.md)
 - [June Preview FAQ](docs/faq-june-preview.md)
-
-
-
-
