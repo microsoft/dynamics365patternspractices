@@ -45,6 +45,7 @@ This package adds:
 Start with:
 
 - [June Preview README](June-Preview/README.md)
+- [Set up Azure DevOps with the Business Process Catalog June Preview](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-june-preview)
 - [What's new in June Preview](June-Preview/docs/whats-new-june-preview.md)
 - [June Preview user guide](June-Preview/docs/user-guide-june-preview.md)
 - [June Preview FAQ](June-Preview/docs/faq-june-preview.md)
