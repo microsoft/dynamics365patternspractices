@@ -1,0 +1,117 @@
+[
+  {
+    "Path": "1_ADO_Creation_Script (Preview).py",
+    "Bytes": 31210,
+    "Sha256": "4725DBA8C0F38E8C1FA8D75DDCD1B6EF042F5F1AAB7463CBC9F69BEC1A52744E"
+  },
+  {
+    "Path": "2_ADO_Page_Layout_Script_Threaded (Preview).py",
+    "Bytes": 60231,
+    "Sha256": "BB82F7460389F4F22B4C0F03F9D8D4D314BC172E8916CAF89F654318D1A027BB"
+  },
+  {
+    "Path": "3_ADO_Teams_Areas_Script (Preview).py",
+    "Bytes": 10494,
+    "Sha256": "76E9B7C49A2B31277565F1E3FD1B456D37DF7D8F9E7E174D10A5F5686B66BDF7"
+  },
+  {
+    "Path": "4_ADO_Backlog_Config_Script (Preview).py",
+    "Bytes": 35735,
+    "Sha256": "50472A822B9981AB04AA75198CB124AD8B2914F9798EB27929401AB9987EC839"
+  },
+  {
+    "Path": "5_BPC_Catalog_Import.py",
+    "Bytes": 1934,
+    "Sha256": "FAB5A6C45A3E026B562AFFD01845795C46EF4BE93EED2F458A0F92AFB6D8B531"
+  },
+  {
+    "Path": "6_Generate_HTML_Report.py",
+    "Bytes": 20927,
+    "Sha256": "B991D407E836A819088D86244AE44A77C97C743B898C957A3E9E29B80CF4E142"
+  },
+  {
+    "Path": "ado_setup_config.py",
+    "Bytes": 5751,
+    "Sha256": "3E8312615DB56A5AA27A7056B5D892C76D13D53479E63DA0FAAA436F2FD26BBE"
+  },
+  {
+    "Path": "ado_setup_validation.py",
+    "Bytes": 8469,
+    "Sha256": "54D219358ADD266BBC5C465D276315C78F011E7963ECCB1E116BDCDC54BEF9E2"
+  },
+  {
+    "Path": "bpc_ado_import\\__init__.py",
+    "Bytes": 106,
+    "Sha256": "C9AD4E4EAE47161EA89309CCE1BF959E3EC109DAA9215D5B664FCDD8546373F2"
+  },
+  {
+    "Path": "bpc_ado_import\\ado.py",
+    "Bytes": 11271,
+    "Sha256": "C54DBC64F4704D79C809C6496FD5EE2619152DE17977E863962542FD1875F213"
+  },
+  {
+    "Path": "bpc_ado_import\\cli.py",
+    "Bytes": 33108,
+    "Sha256": "01D706017E51EDA5650AAC757826DE7C1BBE41B3BB365D9D5947143D7FD62C44"
+  },
+  {
+    "Path": "bpc_ado_import\\mapping.py",
+    "Bytes": 6465,
+    "Sha256": "7F479594DF0A03E7DF0D2D22C895784052D670320F622B9487314C3EB3F2B853"
+  },
+  {
+    "Path": "bpc_ado_import\\sources.py",
+    "Bytes": 3448,
+    "Sha256": "8A9D37A192A529F7C0D005283DD118346E2622FA0E6A0700960A5D5F8FE399AF"
+  },
+  {
+    "Path": "bpc_ado_import\\test_steps.py",
+    "Bytes": 1371,
+    "Sha256": "B9CBD669FF900A360D0EBEE4B664BB1D61F8DB476A9E5D37974CD182F3109B69"
+  },
+  {
+    "Path": "bpc_ado_import\\transform.py",
+    "Bytes": 11861,
+    "Sha256": "4CEAA278098082E810A62DAE58464D430BC6450970D1FA461A60A178D3BFCBF3"
+  },
+  {
+    "Path": "docs\\importer-architecture.md",
+    "Bytes": 4395,
+    "Sha256": "8D733BE46F0F53EE6FF13A237B4C5959B2AF3341D5A93D0C11C28C85EF7E29CA"
+  },
+  {
+    "Path": "docs\\instructions-june-private-preview.md",
+    "Bytes": 2916,
+    "Sha256": "9DB8D1BE25E8FC3AAF948F3A669FF75B3A46C218EC11F4B2E6B12EC5AB663697"
+  },
+  {
+    "Path": "docs\\performance-options.md",
+    "Bytes": 3758,
+    "Sha256": "CCC865FE1041FF7AE7D5C9517D603F94F2EB93727B39E9520D8AB1CAB6C40623"
+  },
+  {
+    "Path": "docs\\user-guide-june-private-preview.md",
+    "Bytes": 3808,
+    "Sha256": "DF334F13BE5A1887DEF31D10804C44A3F91D5F39A4EF11EA2045BF0C04E1A198"
+  },
+  {
+    "Path": "docs\\whats-new-june-private-preview.md",
+    "Bytes": 6136,
+    "Sha256": "4184E4BD9D19E52A1BC44293AF785CE07453408B3496B4C1ED34A5BBD0BDACC1"
+  },
+  {
+    "Path": "README.md",
+    "Bytes": 5080,
+    "Sha256": "CE0D34EB5B99477036C07910E4627C4F4536E4256056EF69C9F0EA37A890F5DC"
+  },
+  {
+    "Path": "requirements.txt",
+    "Bytes": 48,
+    "Sha256": "281E626FFC94BC93DA09729DBAC8AADC59EBFCF2739C3280D6B0471E19B92BF2"
+  },
+  {
+    "Path": "setup_wizard.py",
+    "Bytes": 8949,
+    "Sha256": "5186B2A928D828FE0525CA5B1E793E38B880C9B538453D9E5A02FE7A4647C078"
+  }
+]
