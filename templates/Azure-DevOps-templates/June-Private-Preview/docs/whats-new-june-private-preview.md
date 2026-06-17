@@ -11,7 +11,7 @@ The June Private Preview expands the package from a set of discrete Azure DevOps
 | Area | Currently published preview | June Private Preview |
 | --- | --- | --- |
 | Execution model | Individual scripts run manually in sequence. | `setup_wizard.py` orchestrates phases 1-6 with `--start-at` and `--stop-after` rerun support. |
-| Dependency setup | User installs Python dependencies manually. | Package README recommends a Python virtual environment and retains `requirements.txt`. |
+| Dependency setup | User installs Python dependencies manually. | Package README keeps the standard `python -m pip install -r requirements.txt` flow and includes virtual environments as an optional tip. |
 | Azure DevOps configuration | Process, project, work item types, fields, layouts, teams, areas, and backlogs are configured by separate scripts. | Same setup phases are retained and wrapped by the wizard with early Excel and ADO access validation. |
 | Catalog import | Not included or handled separately. | Phase 5 imports catalog source files into ADO using a parent-aware, resumable importer. |
 | Import resume | Manual reruns can duplicate work unless handled outside the scripts. | `ado-id-map.csv` records successful work item IDs and reruns skip imported keys. |

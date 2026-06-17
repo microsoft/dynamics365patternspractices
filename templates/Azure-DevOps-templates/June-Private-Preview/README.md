@@ -17,17 +17,19 @@ Use this package to create or update the Azure DevOps process/project configurat
 
 ## Install dependencies
 
-Python 3.12 or later is recommended. Use a virtual environment for repeatable setup:
+Python 3.12 or later is recommended.
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
+
+> [!TIP]
+> If you want an isolated Python environment, you can optionally create a virtual environment before installing dependencies. For Windows guidance, see [Creation of virtual environments](https://docs.python.org/3/library/venv.html#creating-virtual-environments). After creating and activating a virtual environment, run the same `python -m pip install -r requirements.txt` command.
 
 ## Run all phases
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py `
+python setup_wizard.py `
   --ado-org-url "https://dev.azure.com/<organization>" `
   --ado-project "<project name>" `
   --process-name "<process name>" `
@@ -46,19 +48,19 @@ For large imports, start with 2-8 parallel workers. Higher worker counts may tri
 Rerun only phases 1 and 2:
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py --start-at 1 --stop-after 2
+python setup_wizard.py --start-at 1 --stop-after 2
 ```
 
 Run only phase 5 import:
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py --start-at 5 --stop-after 5
+python setup_wizard.py --start-at 5 --stop-after 5
 ```
 
 Regenerate only the HTML summary report:
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py --start-at 6 --stop-after 6
+python setup_wizard.py --start-at 6 --stop-after 6
 ```
 
 ## Phase 5 import behavior

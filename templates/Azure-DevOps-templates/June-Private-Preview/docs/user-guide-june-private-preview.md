@@ -17,14 +17,16 @@ For long imports, run from a dev-box-local folder such as `C:\BPCADO`. Avoid run
 ```powershell
 Set-Location "C:\BPCADO\bpc-ado-publish-package"
 
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
+
+> [!TIP]
+> A Python virtual environment is optional. Use one if you want to isolate this package's dependencies from other Python tools on the machine. For Windows guidance, see [Creation of virtual environments](https://docs.python.org/3/library/venv.html#creating-virtual-environments). After creating and activating a virtual environment, use the same commands shown in this guide.
 
 ## Run the full setup
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py `
+python setup_wizard.py `
   --ado-org-url "https://dev.azure.com/<organization>" `
   --ado-project "<project name>" `
   --process-name "<process name>" `
@@ -41,19 +43,19 @@ The wizard prompts for the Azure DevOps PAT if `BPC_ADO_PAT` is not already set.
 Run only process/project setup:
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py --start-at 1 --stop-after 4
+python setup_wizard.py --start-at 1 --stop-after 4
 ```
 
 Run only catalog import:
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py --start-at 5 --stop-after 5
+python setup_wizard.py --start-at 5 --stop-after 5
 ```
 
 Generate only the HTML report:
 
 ```powershell
-.\.venv\Scripts\python.exe setup_wizard.py --start-at 6 --stop-after 6
+python setup_wizard.py --start-at 6 --stop-after 6
 ```
 
 ## Choose a worker count
