@@ -124,14 +124,6 @@ The June Preview template cleanup includes:
 - Very high parallel worker counts can trigger ADO ATCPU throttling. Start with 2-8 workers and increase only after validating process stability.
 - The HTML report is deterministic and local; it does not query Azure DevOps to verify every work item after import.
 
-## Learn article recommendation
-
-For the June Preview, publish a new consolidated Learn article that covers the six-phase wizard and links to the June Preview package. Keep the existing per-script articles published for the current preview until the June Preview becomes the default package. Add a note at the top of each existing article such as:
-
-> This article applies to the current published preview scripts. For the June Preview guided setup and catalog importer, see [new June Preview article link].
-
-After the June Preview replaces the current package, retire or redirect the older per-script articles to the consolidated June Preview article. Keep the troubleshooting article, but update it with the new Phase 5/Phase 6 behavior, ADO throttling guidance, PAT scopes, HTML control automation, multivalue control requirements, and failure reconciliation.
-
 ## Recommended preview validation
 
 Before publishing broadly:

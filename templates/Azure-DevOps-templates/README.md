@@ -47,7 +47,7 @@ Start with:
 - [June Preview README](June-Preview/README.md)
 - [What's new in June Preview](June-Preview/docs/whats-new-june-preview.md)
 - [June Preview user guide](June-Preview/docs/user-guide-june-preview.md)
-- [June Preview publishing instructions](June-Preview/docs/instructions-june-preview.md)
+- [June Preview FAQ](June-Preview/docs/faq-june-preview.md)
 
 The June Preview template workbook is:
 

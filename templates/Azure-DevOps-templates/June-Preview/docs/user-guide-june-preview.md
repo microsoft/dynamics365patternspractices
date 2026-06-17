@@ -111,6 +111,29 @@ Use the report to review:
 - quick links to ADO and output files,
 - phase log details.
 
+## How the catalog import works
+
+Phase 5 is a single-process, resumable Azure DevOps import utility. It reads the Business Process Catalog source files and the ADO template workbook, builds a deterministic parent-first import plan, and creates work items in Azure DevOps.
+
+The importer uses these main steps:
+
+1. Load source files from the catalog source folder. Supported formats are `.xlsx`, `.xlsm`, `.csv`, and `.tsv`.
+2. Load the ADO template workbook to map source columns to Azure DevOps field reference names and work item types.
+3. Build work item drafts with parent-child relationships.
+4. Normalize placeholder area and iteration paths to the target project name.
+5. Create parent work items before child work items.
+6. Write each successful work item ID to `ado-id-map.csv`.
+7. On rerun, skip any source key already present in `ado-id-map.csv`.
+
+The source key is usually `MSBPC.microsoftid` or the process sequence ID. This key lets the importer resume safely after throttling, validation failures, or an interrupted run.
+
+The importer also writes:
+
+- `import-plan.json` for the deterministic import plan,
+- `import-preview.csv` for a human-readable preview,
+- `import-failures.json` for detailed failure messages,
+- `skipped-deprecated-deleted.csv` for rows skipped by create/import mode.
+
 ## Rerun behavior
 
 Phase 5 is resumable. Successful imports are recorded in:
