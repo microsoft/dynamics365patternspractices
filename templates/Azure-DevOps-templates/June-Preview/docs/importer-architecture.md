@@ -1,6 +1,6 @@
-# BPC ADO Importer v2 architecture
+# BPC ADO importer architecture
 
-The v2 importer is a single-process, resumable Azure DevOps import utility. It keeps hierarchy creation deterministic by creating parents before children, and it keeps reruns idempotent through the `ado-id-map.csv` file.
+The June Preview importer is a single-process, resumable Azure DevOps import utility. It keeps hierarchy creation deterministic by creating parents before children, and it keeps reruns idempotent through the `ado-id-map.csv` file.
 
 ```mermaid
 flowchart TD
@@ -39,17 +39,17 @@ flowchart TD
 
 ## Idempotency model
 
-The importer uses the source key, usually `MSBPC.microsoftid` or process sequence ID, as the stable import key. v2 scopes output by Azure DevOps organization/project and appends each successful create to:
+The importer uses the source key, usually `MSBPC.microsoftid` or process sequence ID, as the stable import key. The importer scopes output by Azure DevOps organization/project and appends each successful create to:
 
 ```text
 out\<organization>_<project>\ado-id-map.csv
 ```
 
-On rerun, keys already present in that project-specific `ado-id-map.csv` are skipped. For ambiguous transient create failures, v2 also queries ADO by `MSBPC.microsoftid` before retrying, reducing duplicate risk when ADO created the item but the HTTP response was lost.
+On rerun, keys already present in that project-specific `ado-id-map.csv` are skipped. For ambiguous transient create failures, the importer also queries ADO by `MSBPC.microsoftid` before retrying, reducing duplicate risk when ADO created the item but the HTTP response was lost.
 
 ## Retry model
 
-v2 retries:
+The importer retries:
 
 - connection resets,
 - timeouts,
@@ -69,7 +69,7 @@ Validation errors, such as invalid picklist values or required-field failures, a
 
 ## Parallel create model
 
-v2 uses a bounded worker pool controlled by:
+The importer uses a bounded worker pool controlled by:
 
 ```powershell
 --parallel-workers 4
@@ -98,4 +98,7 @@ A custom skill can wrap this script by standardizing:
 4. Import execution.
 5. Failure triage and recommended ADO/process fixes.
 6. Update-file/upsert workflows.
+
+
+
 

@@ -1268,3 +1268,6 @@ def main():
 if __name__ == "__main__":
     log(f"Starting Script 2. Log file: {LOG_FILE}")
     main()
+
+
+

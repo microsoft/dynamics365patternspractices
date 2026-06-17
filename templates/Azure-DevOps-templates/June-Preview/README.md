@@ -1,6 +1,6 @@
-# Business Process Catalog Azure DevOps setup package - June Private Preview
+# Business Process Catalog Azure DevOps setup package - June Preview
 
-This June Private Preview package combines the Azure DevOps setup scripts, the resumable Business Process Catalog work item importer, and a deterministic HTML run summary report.
+This June Preview package combines the Azure DevOps setup scripts, the resumable Business Process Catalog work item importer, and a deterministic HTML run summary report.
 
 Use this package to create or update the Azure DevOps process/project configuration and import the Business Process Catalog source workbooks into Azure DevOps Boards.
 
@@ -24,7 +24,7 @@ python -m pip install -r requirements.txt
 ```
 
 > [!TIP]
-> If you want an isolated Python environment, you can optionally create a virtual environment before installing dependencies. For Windows guidance, see [Creation of virtual environments](https://docs.python.org/3/library/venv.html#creating-virtual-environments). After creating and activating a virtual environment, run the same `python -m pip install -r requirements.txt` command.
+> A Python virtual environment is optional. Use one if you want to isolate this package's dependencies from other Python tools on the machine. For Windows guidance, see [Creation of virtual environments](https://docs.python.org/3/library/venv.html#creating-virtual-environments). After creating and activating a virtual environment, use the same commands shown in this README.
 
 ## Run all phases
 
@@ -65,7 +65,7 @@ python setup_wizard.py --start-at 6 --stop-after 6
 
 ## Phase 5 import behavior
 
-Phase 5 uses the same Azure DevOps organization, project, PAT, and template workbook from the wizard. It calls the v2 importer with:
+Phase 5 uses the same Azure DevOps organization, project, PAT, and template workbook from the wizard. It calls the June Preview importer with:
 
 - parent-aware parallel creation,
 - project-scoped output folders,
@@ -109,4 +109,7 @@ Phase 6 creates a self-contained HTML report in the project output folder. The r
 - quick links to the Azure DevOps project, Boards, Work Items, process settings, output folder, import files, and latest phase logs,
 - latest phase log API status counts and expandable historical log findings,
 - failure reconciliation against `ado-id-map.csv` so stale failure files do not incorrectly show the import as failed after a successful rerun.
+
+
+
 

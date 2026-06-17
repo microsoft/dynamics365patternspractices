@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     import_parser.add_argument("--continue-on-error", action="store_true", help="Continue after individual work item failures.")
     import_parser.add_argument("--skip-unknown-fields", action="store_true", help="Drop fields that do not exist in the target project.")
     import_parser.add_argument("--progress-interval-seconds", type=int, default=60, help="Minimum seconds between progress summaries.")
-    import_parser.add_argument("--print-created-items", action="store_true", help="Print every created work item. By default v2 prints timed summaries only.")
+    import_parser.add_argument("--print-created-items", action="store_true", help="Print every created work item. By default the importer prints timed summaries only.")
     import_parser.add_argument("--max-retries", type=int, default=3, help="Retry count for transient create failures.")
     import_parser.add_argument("--retry-delay-seconds", type=float, default=5, help="Base delay between transient create retries.")
     import_parser.add_argument("--recovery-field", default="MSBPC.microsoftid", help="Field used to find a work item after an ambiguous transient failure.")
@@ -753,4 +753,7 @@ def _failure(draft: WorkItemDraft, message: str) -> dict[str, Any]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+
 

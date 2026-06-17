@@ -1,18 +1,23 @@
-# What's new in Business Process Catalog Azure DevOps setup - June Private Preview
+# What's new in Business Process Catalog Azure DevOps setup - June Preview
 
-This article summarizes the June Private Preview update for the Business Process Catalog Azure DevOps setup package.
+This article summarizes the June Preview update for the Business Process Catalog Azure DevOps setup package.
 
 ## Summary
 
-The June Private Preview expands the package from a set of discrete Azure DevOps setup scripts into an end-to-end guided setup and import workflow. It adds a resumable catalog importer, stronger validation and retry behavior, project-scoped outputs, and a deterministic HTML summary report.
+The June Preview expands the package from a set of discrete Azure DevOps setup scripts into an end-to-end guided setup and import workflow. It adds a resumable catalog importer, stronger validation and retry behavior, project-scoped outputs, and a deterministic HTML summary report.
 
 ## Comparison with the currently published GitHub preview
 
-| Area | Currently published preview | June Private Preview |
+| Area | Currently published preview | June Preview |
 | --- | --- | --- |
 | Execution model | Individual scripts run manually in sequence. | `setup_wizard.py` orchestrates phases 1-6 with `--start-at` and `--stop-after` rerun support. |
 | Dependency setup | User installs Python dependencies manually. | Package README keeps the standard `python -m pip install -r requirements.txt` flow and includes virtual environments as an optional tip. |
 | Azure DevOps configuration | Process, project, work item types, fields, layouts, teams, areas, and backlogs are configured by separate scripts. | Same setup phases are retained and wrapped by the wizard with early Excel and ADO access validation. |
+| Manual article steps | Users follow separate Learn articles and complete several manual checks between scripts. | The wizard runs the phases in order, supports selected phase reruns, and reduces manual switching between articles. |
+| HTML controls | Earlier guidance documented manual layout steps for HTML fields when the API skipped them. | Phase 2 now adds HTML fields by using `HtmlFieldControl` payloads where Azure DevOps supports them. |
+| Multivalue controls | Users had to understand and manually handle multivalue controls. | Phase 2 detects and uses the DevLabs multivalue control contribution for fields marked as multiselect. |
+| System work item types | System/inherited work item types could require manual handling. | The setup scripts materialize inherited/system work item types when needed and retry field/layout updates against the process-specific reference. |
+| PAT requirements | PAT guidance was split across individual articles. | The June Preview user guide documents a consolidated PAT scope recommendation for setup, layout controls, extension checks, and catalog import. |
 | Catalog import | Not included or handled separately. | Phase 5 imports catalog source files into ADO using a parent-aware, resumable importer. |
 | Import resume | Manual reruns can duplicate work unless handled outside the scripts. | `ado-id-map.csv` records successful work item IDs and reruns skip imported keys. |
 | Output organization | Logs and outputs are script-local. | Import output is scoped by organization/project under `out\<organization>_<project>\`. |
@@ -28,7 +33,7 @@ The June Private Preview expands the package from a set of discrete Azure DevOps
 The wizard runs the setup in six phases:
 
 1. Create process, project, work item types, fields, picklists, and Test Case state.
-2. Configure work item page layouts and controls.
+2. Configure work item page layouts, HTML controls, and multivalue controls.
 3. Create teams, area paths, and team assignments.
 4. Configure backlog levels, iterations, and team settings.
 5. Import Business Process Catalog work items.
@@ -49,9 +54,37 @@ Phase 5 imports `.xlsx`, `.xlsm`, `.csv`, and `.tsv` source files. The importer:
 - skips `Deprecated` and `Deleted` catalog rows by default,
 - writes detailed failures to `import-failures.json`.
 
+## Reduced manual setup
+
+The June Preview reduces or removes several manual steps from the current Learn articles:
+
+- The wizard passes shared organization, project, process, template, and PAT settings into each phase.
+- Phase 1 handles process/project setup, picklists, custom fields, and Test Case `New` state handling.
+- Phase 2 adds supported HTML controls and multivalue controls to work item layouts.
+- Phase 2 handles process-specific references for inherited/system work item types instead of requiring users to manually resolve them.
+- Phase 3 creates teams, area paths, and team area assignments.
+- Phase 4 configures backlog levels, iterations, and team settings from the workbook.
+- Phase 5 imports the catalog source workbooks with resume support.
+- Phase 6 generates an HTML summary report instead of requiring users to inspect multiple raw logs.
+
+Some steps remain manual: users still need to create or select the target Azure DevOps organization, create a PAT, grant project users access, install/enable required Azure DevOps extensions when needed, and validate the resulting project configuration.
+
+## PAT and permission changes
+
+The June Preview uses more Azure DevOps APIs than the earlier preview because it configures layouts, handles inherited/system work item types, checks extension availability for multivalue controls, and imports work items. The recommended PAT scopes are:
+
+- **Organization:** Read & manage
+- **Project and Team:** Read & manage
+- **Work Items:** Read & write
+- **Process and Work Item Types:** Read & manage
+- **Extensions:** Read
+- **Marketplace:** Read
+
+The user running the scripts should be an organization owner or Project Collection Administrator. If your tenant restricts PAT scope creation, ask an Azure DevOps administrator to create a token or run the setup.
+
 ## Improved resiliency
 
-The June Private Preview includes:
+The June Preview includes:
 
 - transient retry handling for connection failures, timeouts, HTTP 408, HTTP 429, and HTTP 5xx,
 - recovery lookup by `MSBPC.microsoftid` after ambiguous transient failures,
@@ -76,7 +109,7 @@ The report reconciles `import-failures.json` with `ado-id-map.csv`. If a failure
 
 ## Template updates
 
-The June Private Preview template cleanup includes:
+The June Preview template cleanup includes:
 
 - duplicate picklist value cleanup in the `Products` picklist,
 - `Data type` no longer marked applicable to `Job` work item types in the `Work item types` sheet.
@@ -88,7 +121,15 @@ The June Private Preview template cleanup includes:
 - Very high parallel worker counts can trigger ADO ATCPU throttling. Start with 2-8 workers and increase only after validating process stability.
 - The HTML report is deterministic and local; it does not query Azure DevOps to verify every work item after import.
 
-## Recommended private preview validation
+## Learn article recommendation
+
+For the June Preview, publish a new consolidated Learn article that covers the six-phase wizard and links to the June Preview package. Keep the existing per-script articles published for the current preview until the June Preview becomes the default package. Add a note at the top of each existing article such as:
+
+> This article applies to the current published preview scripts. For the June Preview guided setup and catalog importer, see [new June Preview article link].
+
+After the June Preview replaces the current package, retire or redirect the older per-script articles to the consolidated June Preview article. Keep the troubleshooting article, but update it with the new Phase 5/Phase 6 behavior, ADO throttling guidance, PAT scopes, HTML control automation, multivalue control requirements, and failure reconciliation.
+
+## Recommended preview validation
 
 Before publishing broadly:
 
@@ -97,3 +138,6 @@ Before publishing broadly:
 3. Review `bpc-ado-setup-summary.html`.
 4. Confirm unresolved failures are zero.
 5. Spot-check ADO work item hierarchy, area paths, teams, Test Cases, and report links.
+
+
+

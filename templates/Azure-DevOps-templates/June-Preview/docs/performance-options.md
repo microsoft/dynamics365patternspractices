@@ -1,6 +1,6 @@
 # Performance options for Business Process Catalog imports
 
-This v2 folder is an experimental copy. The original `bpc-ado-importer` folder should remain the stable importer while this version is tested.
+This June Preview performance notes for long-running catalog imports.
 
 ## Current bottlenecks
 
@@ -9,9 +9,9 @@ This v2 folder is an experimental copy. The original `bpc-ado-importer` folder s
 3. **Classification path checks are chatty.** The current importer checks and creates Area Path / Iteration Path nodes before import.
 4. **Console output can slow long runs.** Printing every created item adds overhead and makes it hard to see real progress.
 
-## Safe v2 improvement already implemented
+## Safe June Preview improvement
 
-v2 no longer prints every created work item by default. It prints timed progress summaries controlled by:
+The June Preview importer no longer prints every created work item by default. It prints timed progress summaries controlled by:
 
 ```powershell
 --progress-interval-seconds 60
@@ -24,7 +24,7 @@ python -m bpc_ado_import.cli import `
   --source "<source folder>" `
   --template "<template workbook>" `
   --project-url "<ADO project URL>" `
-  --output .\out-v2 `
+  --output .\out `
   --progress-interval-seconds 60
 ```
 
@@ -34,7 +34,7 @@ If detailed per-item output is needed:
 --print-created-items
 ```
 
-v2 also retries transient API/network failures. The defaults are:
+The importer also retries transient API/network failures. The defaults are:
 
 ```powershell
 --max-retries 3
@@ -42,11 +42,11 @@ v2 also retries transient API/network failures. The defaults are:
 --recovery-field MSBPC.microsoftid
 ```
 
-The recovery field lookup is important for idempotency: if ADO creates the work item but the response is lost due to a connection reset, v2 tries to find the existing work item by Microsoft ID before retrying the create call.
+The recovery field lookup is important for idempotency: if ADO creates the work item but the response is lost due to a connection reset, the importer tries to find the existing work item by Microsoft ID before retrying the create call.
 
 ## Multithreading option
 
-v2 now includes parent-aware multithreading:
+The June Preview now includes parent-aware multithreading:
 
 ```powershell
 --parallel-workers 4
@@ -90,5 +90,8 @@ Converting this into a custom skill is useful for repeatability and partner dist
 - The ADO template validation steps.
 - The standard runbook and troubleshooting guidance.
 
-Recommendation: stabilize v2 first, then package it as a skill once the import behavior and ADO process requirements are final.
+Recommendation: stabilize the June Preview first, then package it as a skill once the import behavior and ADO process requirements are final.
+
+
+
 

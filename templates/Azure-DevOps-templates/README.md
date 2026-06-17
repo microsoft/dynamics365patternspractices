@@ -23,12 +23,12 @@ Use the existing Dynamics 365 Guidance Hub articles for the current published pr
 
 Download the latest version of the business process catalog from [https://aka.ms/businessprocesscatalog](https://aka.ms/businessprocesscatalog).
 
-## June Private Preview
+## June Preview
 
-The June Private Preview package is staged in:
+The June Preview package is staged in:
 
 ```text
-June-Private-Preview\
+June-Preview\
 ```
 
 This package adds:
@@ -44,15 +44,16 @@ This package adds:
 
 Start with:
 
-- [June Private Preview README](June-Private-Preview/README.md)
-- [What's new in June Private Preview](June-Private-Preview/docs/whats-new-june-private-preview.md)
-- [June Private Preview user guide](June-Private-Preview/docs/user-guide-june-private-preview.md)
-- [June Private Preview publishing instructions](June-Private-Preview/docs/instructions-june-private-preview.md)
+- [June Preview README](June-Preview/README.md)
+- [What's new in June Preview](June-Preview/docs/whats-new-june-preview.md)
+- [June Preview user guide](June-Preview/docs/user-guide-june-preview.md)
+- [June Preview publishing instructions](June-Preview/docs/instructions-june-preview.md)
 
-The June Private Preview template workbook is:
+The June Preview template workbook is:
 
 ```text
-June-Private-Preview\ADO template guideline (June Private Preview).xlsx
+June-Preview\ADO template guideline (June Preview).xlsx
 ```
 
 For long catalog imports, use a dev box or other stable Windows environment and start with 2-8 parallel workers before increasing the worker count.
+

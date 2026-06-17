@@ -714,3 +714,6 @@ run_parallel_batch("fields", [row for _, row in df_fields.iterrows()], process_f
 print("Script finished. See log file for details:")
 print(f"  {LOG_FILE}")
 log("Done!")
+
+
+

@@ -1,19 +1,19 @@
-# Publish instructions for Business Process Catalog ADO setup - June Private Preview
+# Publish instructions for Business Process Catalog ADO setup - June Preview
 
-Use this article as the private preview publishing runbook.
+Use this article as the preview publishing runbook.
 
 ## Package label
 
 Use the suffix:
 
 ```text
-June Private Preview
+June Preview
 ```
 
 Recommended package folder/file label:
 
 ```text
-Business Process Catalog ADO setup package - June Private Preview
+Business Process Catalog ADO setup package - June Preview
 ```
 
 ## Publishable files
@@ -33,7 +33,7 @@ Include:
 - `README.md`
 - `bpc_ado_import\*.py`
 - `docs\*.md`
-- the June Private Preview ADO template workbook, if the publishing location is intended to include the template.
+- the June Preview ADO template workbook, if the publishing location is intended to include the template.
 
 Exclude:
 
@@ -47,13 +47,13 @@ Exclude:
 ## Suggested branch
 
 ```text
-private-preview/june-bpc-ado-setup
+preview/june-bpc-ado-setup
 ```
 
 ## Suggested commit title
 
 ```text
-Add Business Process Catalog ADO setup June Private Preview
+Add Business Process Catalog ADO setup June Preview
 ```
 
 ## Pull request summary
@@ -63,7 +63,7 @@ Use this draft:
 ```markdown
 ## Summary
 
-Adds the June Private Preview package for Business Process Catalog Azure DevOps setup and import.
+Adds the June Preview package for Business Process Catalog Azure DevOps setup and import.
 
 ## Changes
 
@@ -73,11 +73,11 @@ Adds the June Private Preview package for Business Process Catalog Azure DevOps 
 - Adds project-scoped import output and idempotent rerun behavior through `ado-id-map.csv`.
 - Adds retry and recovery behavior for transient ADO failures and throttling.
 - Adds Test Case state handling and dynamic work item type reference resolution.
-- Updates README, user guide, and What's New documentation for private preview.
+- Updates README, user guide, and What's New documentation for preview.
 
 ## Validation
 
-- Ran setup/import against private preview ADO projects.
+- Ran setup/import against preview ADO projects.
 - Verified rerun behavior skips existing imported keys.
 - Verified HTML report reconciles stale failure records with `ado-id-map.csv`.
 ```
@@ -85,8 +85,8 @@ Adds the June Private Preview package for Business Process Catalog Azure DevOps 
 ## Validation checklist
 
 - [ ] Package contains no `.venv`, `__pycache__`, logs, or output files.
-- [ ] README title includes `June Private Preview`.
-- [ ] What's New article compares current published preview and June Private Preview.
+- [ ] README title includes `June Preview`.
+- [ ] What's New article compares current published preview and June Preview.
 - [ ] User guide includes setup, run, rerun, and troubleshooting guidance.
 - [ ] HTML report can be generated with Phase 6.
 - [ ] Import output is project-scoped.
@@ -94,7 +94,10 @@ Adds the June Private Preview package for Business Process Catalog Azure DevOps 
 
 ## After publishing
 
-1. Share the README and user guide with private preview participants.
+1. Share the README and user guide with preview participants.
 2. Ask participants to start with 2-4 workers.
 3. Ask participants to send `bpc-ado-setup-summary.html` and `import-failures.json` when reporting issues.
 4. Capture source/template corrections for the next catalog release.
+
+
+
