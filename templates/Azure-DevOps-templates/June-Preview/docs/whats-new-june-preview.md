@@ -15,7 +15,7 @@ The June Preview expands the package from a set of discrete Azure DevOps setup s
 | Azure DevOps configuration | Process, project, work item types, fields, layouts, teams, areas, and backlogs are configured by separate scripts. | Same setup phases are retained and wrapped by the wizard with early Excel and ADO access validation. |
 | Manual article steps | Users follow separate Learn articles and complete several manual checks between scripts. | The wizard runs the phases in order, supports selected phase reruns, and reduces manual switching between articles. |
 | HTML controls | Earlier guidance documented manual layout steps for HTML fields when the API skipped them. | Phase 2 now adds HTML fields by using `HtmlFieldControl` payloads where Azure DevOps supports them. |
-| Multivalue controls | Users had to understand and manually handle multivalue controls. | Phase 2 detects and uses the DevLabs multivalue control contribution for fields marked as multiselect. |
+| Multivalue controls | Users had to understand and manually handle multivalue controls. | Phase 2 attempts to install or confirm the DevLabs multivalue control extension, then uses its contribution for fields marked as multiselect. |
 | System work item types | System/inherited work item types could require manual handling. | The setup scripts materialize inherited/system work item types when needed and retry field/layout updates against the process-specific reference. |
 | PAT requirements | PAT guidance was split across individual articles. | The June Preview user guide documents a consolidated PAT scope recommendation for setup, layout controls, extension checks, and catalog import. |
 | Catalog import | Not included or handled separately. | Phase 5 imports catalog source files into ADO using a parent-aware, resumable importer. |
@@ -61,6 +61,7 @@ The June Preview reduces or removes several manual steps from the current Learn 
 - The wizard passes shared organization, project, process, template, and PAT settings into each phase.
 - Phase 1 handles process/project setup, picklists, custom fields, and Test Case `New` state handling.
 - Phase 2 adds supported HTML controls and multivalue controls to work item layouts.
+- Phase 2 attempts to install or confirm the DevLabs multivalue control extension. If organization policy blocks extension installation, install the extension manually and rerun Phase 2.
 - Phase 2 handles process-specific references for inherited/system work item types instead of requiring users to manually resolve them.
 - Phase 3 creates teams, area paths, and team area assignments.
 - Phase 4 configures backlog levels, iterations, and team settings from the workbook.
@@ -79,6 +80,8 @@ The June Preview uses more Azure DevOps APIs than the earlier preview because it
 - **Process and Work Item Types:** Read & manage
 - **Extensions:** Read
 - **Marketplace:** Read
+
+If you expect Phase 2 to install the DevLabs multivalue control extension, the PAT/account must be allowed to manage organization extensions. Some organizations restrict extension installation to organization owners or administrators even when a PAT has extension-related scopes.
 
 The user running the scripts should be an organization owner or Project Collection Administrator. If your tenant restricts PAT scope creation, ask an Azure DevOps administrator to create a token or run the setup.
 

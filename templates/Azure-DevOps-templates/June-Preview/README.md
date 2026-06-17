@@ -100,6 +100,10 @@ Phase 1 ensures Test Case work item type references have a `New` state in the `P
 
 Phase 5 also resolves work item type display names to the current project's Azure DevOps work item type reference names. This avoids hard-coded process/project prefixes and supports projects where the process-specific Test Case reference differs.
 
+## DevLabs multivalue control extension
+
+Phase 2 attempts to install or confirm the DevLabs multivalue control extension for the Azure DevOps organization. If the extension is already installed, the script continues. If the PAT or organization policy doesn't allow extension installation, Phase 2 logs a warning and skips multivalue controls until the extension is installed manually or the script is rerun with an account/PAT that can manage extensions.
+
 ## Phase 6 HTML summary report
 
 Phase 6 creates a self-contained HTML report in the project output folder. The report includes:
@@ -109,6 +113,12 @@ Phase 6 creates a self-contained HTML report in the project output folder. The r
 - quick links to the Azure DevOps project, Boards, Work Items, process settings, output folder, import files, and latest phase logs,
 - latest phase log API status counts and expandable historical log findings,
 - failure reconciliation against `ado-id-map.csv` so stale failure files do not incorrectly show the import as failed after a successful rerun.
+
+## More guidance
+
+- [What's new in June Preview](docs/whats-new-june-preview.md)
+- [June Preview user guide](docs/user-guide-june-preview.md)
+- [June Preview FAQ](docs/faq-june-preview.md)
 
 
 

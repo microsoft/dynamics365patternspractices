@@ -40,6 +40,8 @@ Select these PAT scopes:
 
 If your organization limits PAT scopes by policy, work with your Azure DevOps administrator to grant equivalent permissions or run the setup with an account that already has those capabilities.
 
+Phase 2 attempts to install or confirm the DevLabs multivalue control extension by using Azure DevOps extension management APIs. If the extension is already installed, the check succeeds. If the extension isn't installed and the PAT/account can't install extensions, Phase 2 logs a warning and skips multivalue controls. In that case, install the extension manually from Azure DevOps Marketplace or rerun Phase 2 with an account and PAT that can manage extensions.
+
 Do not paste the PAT into the scripts or commit it to source control. Let the wizard prompt for it, or set it only for the current PowerShell session:
 
 ```powershell
@@ -128,7 +130,7 @@ When rerun, the importer skips keys already in that file and continues from rema
 | HTTP 429 or ATCPU failure | Too many parallel ADO requests. | Rerun Phase 5 with fewer workers. |
 | Required field failure | Source data or template applicability mismatch. | Fix source/template or adjust the ADO process requirement, then rerun Phase 5. |
 | Stale failure still appears | Earlier `import-failures.json` entry was later imported. | Regenerate Phase 6 report; it reconciles failures against `ado-id-map.csv`. |
-| Layout or multivalue controls are not added | PAT is missing extension/marketplace read access, or the DevLabs multivalue control extension is not installed for the organization. | Confirm PAT scopes and install/enable the extension before rerunning Phase 2. |
+| Layout or multivalue controls are not added | PAT is missing extension/marketplace access, organization policy blocks extension installation, or the DevLabs multivalue control extension is not installed. | Confirm PAT scopes, install/enable the extension manually if needed, then rerun Phase 2. |
 
 ## Security notes
 
