@@ -8,10 +8,10 @@ Use this package to create or update the Azure DevOps process/project configurat
 
 | Phase | Purpose | Script |
 | ---: | --- | --- |
-| 1 | Create process, project, work item types, fields, picklists, and Test Case `New` state | `1_ADO_Creation_Script (Preview).py` |
-| 2 | Configure work item page layouts and DevLabs Multivalue controls | `2_ADO_Page_Layout_Script_Threaded (Preview).py` |
-| 3 | Create teams, area paths, and team area assignments | `3_ADO_Teams_Areas_Script (Preview).py` |
-| 4 | Configure backlog levels, iterations, and team settings | `4_ADO_Backlog_Config_Script (Preview).py` |
+| 1 | Create process, project, work item types, fields, picklists, and Test Case `New` state | `1_ADO_Creation_Script.py` |
+| 2 | Configure work item page layouts and DevLabs Multivalue controls | `2_ADO_Page_Layout_Script_Threaded.py` |
+| 3 | Create teams, area paths, and team area assignments | `3_ADO_Teams_Areas_Script.py` |
+| 4 | Configure backlog levels, iterations, and team settings | `4_ADO_Backlog_Config_Script.py` |
 | 5 | Import Business Process Catalog work items | `5_BPC_Catalog_Import.py` |
 | 6 | Generate deterministic HTML setup/import summary report | `6_Generate_HTML_Report.py` |
 

@@ -23,25 +23,25 @@ PHASES = [
     Phase(
         1,
         "Create process, project, work item types, fields, and picklists",
-        "1_ADO_Creation_Script (Preview).py",
+        "1_ADO_Creation_Script.py",
         ["Work item types", "Fields", "Picklists"],
     ),
     Phase(
         2,
         "Create work item page layouts",
-        "2_ADO_Page_Layout_Script_Threaded (Preview).py",
+        "2_ADO_Page_Layout_Script_Threaded.py",
         ["Work item types", "Fields"],
     ),
     Phase(
         3,
         "Create teams, area paths, and team area assignments",
-        "3_ADO_Teams_Areas_Script (Preview).py",
+        "3_ADO_Teams_Areas_Script.py",
         ["Area paths"],
     ),
     Phase(
         4,
         "Configure backlogs, iterations, and team settings",
-        "4_ADO_Backlog_Config_Script (Preview).py",
+        "4_ADO_Backlog_Config_Script.py",
         ["Backlogs", "Work item types", "Iteration paths", "Teams", "Area paths"],
     ),
     Phase(
