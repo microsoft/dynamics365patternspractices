@@ -1,4 +1,4 @@
-# Business Process Catalog Azure DevOps setup FAQ - June Preview
+# Business Process Catalog Azure DevOps setup FAQ - July
 
 ## What Python command should I use to install packages?
 
@@ -76,13 +76,13 @@ Use an account that is an Azure DevOps organization owner or Project Collection 
 
 If your organization restricts extension installation, the account may also need organization-owner or administrator rights beyond the PAT scopes.
 
-## Does the June Preview still require manual HTML control setup?
+## Does the July still require manual HTML control setup?
 
 In most cases, no. Phase 2 now adds supported HTML fields to work item layouts by using Azure DevOps `HtmlFieldControl` payloads.
 
 If Azure DevOps rejects a specific control or if an inherited/system work item type layout is locked, the script logs the response. Review the Phase 2 log and rerun after fixing the process or permissions issue.
 
-## Does the June Preview still require manual multivalue control setup?
+## Does the July still require manual multivalue control setup?
 
 Usually no. Phase 2 adds multivalue controls when:
 
@@ -121,7 +121,7 @@ Run Phase 5 to import catalog content.
 
 ## Why do Test Case state or work item type reference issues appear?
 
-The June Preview handles Test Case setup in two places:
+The July handles Test Case setup in two places:
 
 - Phase 1 confirms the `New` state on Test Case work item type references.
 - Phase 5 resolves display names to the current project's ADO work item type reference names and can create without `System.State` first if Azure DevOps rejects a custom state during create.

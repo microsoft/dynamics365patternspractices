@@ -1,6 +1,6 @@
-# Business Process Catalog Azure DevOps setup package - June Preview
+# Business Process Catalog Azure DevOps setup package - July
 
-This June Preview package combines the Azure DevOps setup scripts, the resumable Business Process Catalog work item importer, and a deterministic HTML run summary report.
+This July package combines the Azure DevOps setup scripts, the resumable Business Process Catalog work item importer, and a deterministic HTML run summary report.
 
 Use this package to create or update the Azure DevOps process/project configuration and import the Business Process Catalog source workbooks into Azure DevOps Boards.
 
@@ -65,7 +65,7 @@ python setup_wizard.py --start-at 6 --stop-after 6
 
 ## Phase 5 import behavior
 
-Phase 5 uses the same Azure DevOps organization, project, PAT, and template workbook from the wizard. It calls the June Preview importer with:
+Phase 5 uses the same Azure DevOps organization, project, PAT, and template workbook from the wizard. It calls the July importer with:
 
 - parent-aware parallel creation,
 - project-scoped output folders,
@@ -116,9 +116,9 @@ Phase 6 creates a self-contained HTML report in the project output folder. The r
 
 ## More guidance
 
-- [Set up Azure DevOps with the Business Process Catalog June Preview](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-june-preview)
-- [What's new in the Business Process Catalog Azure DevOps setup June Preview](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-june-preview-whats-new)
-- [Business Process Catalog Azure DevOps setup FAQ - June Preview](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-june-preview-faq)
-- [What's new in June Preview](docs/whats-new-june-preview.md)
-- [June Preview user guide](docs/user-guide-june-preview.md)
-- [June Preview FAQ](docs/faq-june-preview.md)
+- [Set up Azure DevOps with the Business Process Catalog July](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-july)
+- [What's new in the Business Process Catalog Azure DevOps setup July](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-july-whats-new)
+- [Business Process Catalog Azure DevOps setup FAQ - July](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-july-faq)
+- [What's new in July](docs/whats-new-july.md)
+- [July user guide](docs/user-guide-july.md)
+- [July FAQ](docs/faq-july.md)

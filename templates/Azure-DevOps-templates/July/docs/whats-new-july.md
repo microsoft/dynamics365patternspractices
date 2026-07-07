@@ -1,14 +1,14 @@
-# What's new in Business Process Catalog Azure DevOps setup - June Preview
+# What's new in Business Process Catalog Azure DevOps setup - July
 
-This article summarizes the June Preview update for the Business Process Catalog Azure DevOps setup package.
+This article summarizes the July update for the Business Process Catalog Azure DevOps setup package.
 
 ## Summary
 
-The June Preview expands the package from a set of discrete Azure DevOps setup scripts into an end-to-end guided setup and import workflow. It adds a resumable catalog importer, stronger validation and retry behavior, project-scoped outputs, and a deterministic HTML summary report.
+The July expands the package from a set of discrete Azure DevOps setup scripts into an end-to-end guided setup and import workflow. It adds a resumable catalog importer, stronger validation and retry behavior, project-scoped outputs, and a deterministic HTML summary report.
 
 ## Comparison with the currently published GitHub preview
 
-| Area | Currently published preview | June Preview |
+| Area | Currently published preview | July |
 | --- | --- | --- |
 | Execution model | Individual scripts run manually in sequence. | `setup_wizard.py` orchestrates phases 1-6 with `--start-at` and `--stop-after` rerun support. |
 | Dependency setup | User installs Python dependencies manually. | Package README keeps the standard `python -m pip install -r requirements.txt` flow and includes virtual environments as an optional tip. |
@@ -17,7 +17,7 @@ The June Preview expands the package from a set of discrete Azure DevOps setup s
 | HTML controls | Earlier guidance documented manual layout steps for HTML fields when the API skipped them. | Phase 2 now adds HTML fields by using `HtmlFieldControl` payloads where Azure DevOps supports them. |
 | Multivalue controls | Users had to understand and manually handle multivalue controls. | Phase 2 attempts to install or confirm the DevLabs multivalue control extension, then uses its contribution for fields marked as multiselect. |
 | System work item types | System/inherited work item types could require manual handling. | The setup scripts materialize inherited/system work item types when needed and retry field/layout updates against the process-specific reference. |
-| PAT requirements | PAT guidance was split across individual articles. | The June Preview user guide documents a consolidated PAT scope recommendation for setup, layout controls, extension checks, and catalog import. |
+| PAT requirements | PAT guidance was split across individual articles. | The July user guide documents a consolidated PAT scope recommendation for setup, layout controls, extension checks, and catalog import. |
 | Catalog import | Not included or handled separately. | Phase 5 imports catalog source files into ADO using a parent-aware, resumable importer. |
 | Import resume | Manual reruns can duplicate work unless handled outside the scripts. | `ado-id-map.csv` records successful work item IDs and reruns skip imported keys. |
 | Output organization | Logs and outputs are script-local. | Import output is scoped by organization/project under `out\<organization>_<project>\`. |
@@ -56,7 +56,7 @@ Phase 5 imports `.xlsx`, `.xlsm`, `.csv`, and `.tsv` source files. The importer:
 
 ## Reduced manual setup
 
-The June Preview reduces or removes several manual steps from the current Learn articles:
+The July reduces or removes several manual steps from the current Learn articles:
 
 - The wizard passes shared organization, project, process, template, and PAT settings into each phase.
 - Phase 1 handles process/project setup, picklists, custom fields, and Test Case `New` state handling.
@@ -72,7 +72,7 @@ Some steps remain manual: users still need to create or select the target Azure 
 
 ## PAT and permission changes
 
-The June Preview uses more Azure DevOps APIs than the earlier preview because it configures layouts, handles inherited/system work item types, checks extension availability for multivalue controls, and imports work items. The recommended PAT scopes are:
+The July uses more Azure DevOps APIs than the earlier preview because it configures layouts, handles inherited/system work item types, checks extension availability for multivalue controls, and imports work items. The recommended PAT scopes are:
 
 - **Organization:** Read & manage
 - **Project and Team:** Read & manage
@@ -87,7 +87,7 @@ The user running the scripts should be an organization owner or Project Collecti
 
 ## Improved resiliency
 
-The June Preview includes:
+The July includes:
 
 - transient retry handling for connection failures, timeouts, HTTP 408, HTTP 429, and HTTP 5xx,
 - recovery lookup by `MSBPC.microsoftid` after ambiguous transient failures,
@@ -112,7 +112,7 @@ The report reconciles `import-failures.json` with `ado-id-map.csv`. If a failure
 
 ## Template updates
 
-The June Preview template cleanup includes:
+The July template cleanup includes:
 
 - duplicate picklist value cleanup in the `Products` picklist,
 - `Data type` no longer marked applicable to `Job` work item types in the `Work item types` sheet.

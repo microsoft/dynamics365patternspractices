@@ -1,6 +1,6 @@
-# Business Process Catalog Azure DevOps setup user guide - June Preview
+# Business Process Catalog Azure DevOps setup user guide - July
 
-This guide explains how to run the June Preview setup package.
+This guide explains how to run the July setup package.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ python -m pip install -r requirements.txt
 
 Create a PAT for the account that will run the setup. The account should be an Azure DevOps organization owner or Project Collection Administrator for the target organization.
 
-The June Preview needs broader permissions than the earlier manual-script preview because it creates or updates the project/process, materializes inherited/system work item types, updates layouts, configures teams/areas/backlogs, checks the DevLabs multivalue control extension, and imports work items.
+The July needs broader permissions than the earlier manual-script preview because it creates or updates the project/process, materializes inherited/system work item types, updates layouts, configures teams/areas/backlogs, checks the DevLabs multivalue control extension, and imports work items.
 
 Select these PAT scopes:
 
