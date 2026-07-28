@@ -2,7 +2,7 @@
 
 This July package combines the Azure DevOps setup scripts, the resumable Business Process Catalog work item importer, and a deterministic HTML run summary report.
 
-Use this package to create or update the Azure DevOps process/project configuration and import the Business Process Catalog source workbooks into Azure DevOps Boards.
+Use this package to create or update the Azure DevOps process/project configuration and import the Business Process Catalog source workbooks into Azure DevOps Boards. Learn about the templates at [Set up Azure DevOps with the Business Process Catalog](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/about-configure-azure-devops-july) on the Microsoft Learn website.
 
 ## Phases
 
@@ -119,6 +119,3 @@ Phase 6 creates a self-contained HTML report in the project output folder. The r
 - [Set up Azure DevOps with the Business Process Catalog July](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-july)
 - [What's new in the Business Process Catalog Azure DevOps setup July](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-july-whats-new)
 - [Business Process Catalog Azure DevOps setup FAQ - July](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-configure-azure-devops-july-faq)
-- [What's new in July](docs/whats-new-july.md)
-- [July user guide](docs/user-guide-july.md)
-- [July FAQ](docs/faq-july.md)
