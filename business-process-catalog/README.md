@@ -1,5 +1,6 @@
 # Microsoft's business process catalog
-The term *business process* covers a wide range of structured, often sequenced, activities or tasks to achieve a predetermined organizational goal. The term can also refer to the cumulative effects of all steps progressing toward a business goal. In our articles, we illustrate this sequence of steps in flowcharts. Dynamics 365 is a suite of applications that are designed to help organization meet the organizational goals aligned to a variety of business processes focused on specific industries. Learn more at [About business processes](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/about).
+
+The term *business process* covers a wide range of structured, often sequenced, activities or tasks to achieve a predetermined organizational goal. The term can also refer to the cumulative effects of all steps progressing toward a business goal. In our articles on the Microsoft Learn website, we illustrate this sequence of steps in flowcharts. Dynamics 365 is a suite of applications that are designed to help organizations meet organizational goals aligned to a variety of business processes focused on specific industries. Learn more at [About business processes](https://learn.microsoft.com/en-us/dynamics365/guidance/business-processes/about).
 
 ## Download the catalog
 
