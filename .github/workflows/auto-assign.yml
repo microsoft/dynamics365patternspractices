@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Assign issue based on business process
-      uses: actions/github-script@211cb3fefb35a799baa5156f9321bb774fe56294 # v5.2.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         script: |
           const issueBody = context.payload.issue.body;
