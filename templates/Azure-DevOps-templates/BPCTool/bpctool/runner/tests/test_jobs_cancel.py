@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 
 import pytest
@@ -83,3 +84,29 @@ def test_cancel_finished_job_is_noop(monkeypatch: pytest.MonkeyPatch) -> None:
     result = jobs.cancel_job(job.id)
     assert result.status == "succeeded"
     assert result.cancel_requested is False
+
+
+def test_overlapping_apply_for_same_org_project_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    started = threading.Event()
+    release = threading.Event()
+
+    def fake_run_apply(request, *, emit, **_kwargs):
+        started.set()
+        release.wait(timeout=5.0)
+        return ApplyResult(ok=True, dry_run=False)
+
+    monkeypatch.setattr(jobs, "run_apply", fake_run_apply)
+    first = jobs.create_job(_request())
+    _wait_for(started.is_set)
+
+    with pytest.raises(jobs.ApplyInProgressError):
+        jobs.create_job(_request())
+
+    release.set()
+    _wait_for(lambda: jobs.get_job(first.id).status == "succeeded")
+
+    # Slot is released once the first apply finishes.
+    second = jobs.create_job(_request())
+    _wait_for(lambda: jobs.get_job(second.id).status == "succeeded")

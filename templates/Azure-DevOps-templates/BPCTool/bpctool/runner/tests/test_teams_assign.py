@@ -115,3 +115,54 @@ def test_apply_teams_dry_run_does_not_patch() -> None:
     assert stats.get("dry_run") is True
     assert stats["assignments"] == 1
     assert client.patches == []
+
+
+def test_apply_teams_root_area_path_override_is_applied_live() -> None:
+    """A configured root_area_path must prefix created nodes and assignments,
+    not just the dry-run preview message."""
+
+    class TrackingClient(FakeClient):
+        def __init__(self) -> None:
+            super().__init__()
+            self.created_nodes: list[str] = []
+
+        def get(self, path: str, **kwargs: Any) -> Any:
+            if path.endswith("/teams"):
+                return self.teams
+            if "classificationnodes" in path:
+                # Nothing exists yet; force creation for every segment so we
+                # can observe exactly what gets created.
+                raise _NotFound()
+            return {}
+
+        def post(self, path: str, **kwargs: Any) -> Any:
+            self.created_nodes.append(kwargs.get("json_body", {}).get("name"))
+            return {"ok": True}
+
+    from app.ado_client import AdoError
+
+    class _NotFound(AdoError):
+        def __init__(self) -> None:
+            super().__init__("not found", status=404)
+
+    client = TrackingClient()
+    ir = {
+        "targets": {"project_name": "MSBPCProj"},
+        "counts": {"teams": 1, "area_paths": 1},
+        "project": {
+            "teams": [{"name": "Accounting"}],
+            "area_paths": [{"path": "Finance", "team": "Accounting"}],
+        },
+    }
+    stats = apply_teams(
+        client,
+        ir,
+        dry_run=False,
+        emit=lambda *_: None,
+        root_area_path="MSBPCProj\\Imported",
+    )
+    assert stats["assignments"] == 1
+    assert "Imported" in client.created_nodes
+    assert "Finance" in client.created_nodes
+    body = client.patches[0]["body"]
+    assert body["defaultValue"] == "MSBPCProj\\Imported\\Finance"

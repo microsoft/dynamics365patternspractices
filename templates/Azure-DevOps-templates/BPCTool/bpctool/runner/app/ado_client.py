@@ -372,6 +372,16 @@ class AdoClient:
                 return str(project.get("id"))
         return None
 
+    def get_project_process_id(self, project_id: str) -> str | None:
+        """templateTypeId (process) a project is bound to, via project capabilities."""
+        data = self.get(
+            f"/_apis/projects/{quote(project_id, safe='')}?includeCapabilities=true",
+            api_version="7.1-preview.4",
+        ) or {}
+        template = ((data.get("capabilities") or {}).get("processTemplate") or {})
+        type_id = template.get("templateTypeId")
+        return str(type_id) if type_id else None
+
     def create_project(
         self,
         project_name: str,

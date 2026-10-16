@@ -52,6 +52,11 @@ def apply_teams(
     if not project_id:
         raise AdoError(f'Project "{project}" not found for teams apply.')
 
+    # Segments of the configured root under the project (e.g. "Imported" for
+    # "Proj\Imported"), applied as a prefix to every created node/assignment so
+    # a configured override is honored the same way live as it is previewed.
+    root_prefix = _relative_area_parts(root, project)
+
     # Teams from Teams sheet + any team names referenced on Area paths.
     team_names: list[str] = []
     seen: set[str] = set()
@@ -97,13 +102,27 @@ def apply_teams(
 
     allowed = set(existing_teams.keys()) | seen
 
+    # Ensure the configured root prefix exists before any areas are nested under it.
+    parent: list[str] = []
+    for name in root_prefix:
+        current = parent + [name]
+        if not _area_exists(client, project, current):
+            try:
+                _create_area(client, project, parent, name)
+                stats["areas"] += 1
+            except AdoError as exc:
+                if exc.status not in {409}:
+                    emit("teams", f"Area {'/'.join(current)}: {exc}")
+                    stats["warnings"] += 1
+        parent = current
+
     # Create area nodes and collect per-team path sets (do not PATCH per row).
     team_assignments: dict[str, dict[str, Any]] = defaultdict(
         lambda: {"default": None, "paths": set()}
     )
 
     for area in ir["project"]["area_paths"]:
-        parts = _relative_area_parts(area.get("path") or "", project)
+        parts = root_prefix + _relative_area_parts(area.get("path") or "", project)
         if not parts:
             continue
         parent: list[str] = []

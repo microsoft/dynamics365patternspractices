@@ -20,12 +20,31 @@ from .models import (
 from .catalog_import import load_catalog_drafts
 from .catalog_validate import prevalidate_catalog_drafts, prevalidate_summary
 from .mapping import build_mapping_from_ir
+from .org_url import normalize_ado_org_url
 from .planner import build_dry_run_plan
 from .run_outcome import catalog_placeholder_count, project_name_notice
 from .timing import format_duration_ms
 
 _lock = threading.Lock()
 _jobs: dict[str, dict[str, Any]] = {}
+# Guards against duplicate work items / overwritten reports when two apply
+# requests target the same org/project at the same time (for example, two
+# browser tabs). Keyed by normalized "org|project"; value is the job id
+# currently holding the slot.
+_active_apply_keys: dict[str, str] = {}
+
+
+class ApplyInProgressError(RuntimeError):
+    """Raised when an apply is requested for an org/project already running."""
+
+
+def _apply_key(request: JobCreateRequest) -> str:
+    try:
+        org = normalize_ado_org_url(request.org_url)
+    except ValueError:
+        org = (request.org_url or "").strip().lower()
+    project = (request.project_name or "").strip().lower()
+    return f"{org}|{project}"
 
 
 def _now() -> str:
@@ -74,6 +93,7 @@ def create_job(request: JobCreateRequest) -> JobStatusResponse:
         raise ValueError("PAT is required for apply mode.")
 
     job_id = uuid.uuid4().hex[:12]
+    apply_key = _apply_key(request) if request.mode == "apply" else None
     created = _now()
     record = {
         "id": job_id,
@@ -96,8 +116,18 @@ def create_job(request: JobCreateRequest) -> JobStatusResponse:
         ],
         "request": request,
         "cancel_event": threading.Event(),
+        "apply_key": apply_key,
     }
     with _lock:
+        if apply_key is not None:
+            existing = _active_apply_keys.get(apply_key)
+            if existing is not None:
+                raise ApplyInProgressError(
+                    "An apply is already running for this organization/project "
+                    f"(job {existing}). Wait for it to finish before starting another "
+                    "to avoid duplicate work items or overwritten reports."
+                )
+            _active_apply_keys[apply_key] = job_id
         _jobs[job_id] = record
 
     if request.mode == "dry-run":
@@ -108,6 +138,14 @@ def create_job(request: JobCreateRequest) -> JobStatusResponse:
     thread = threading.Thread(target=_execute_job, args=(job_id,), daemon=True)
     thread.start()
     return get_job(job_id)
+
+
+def _release_apply_key(job_id: str) -> None:
+    with _lock:
+        job = _jobs.get(job_id)
+        apply_key = job.get("apply_key") if job else None
+        if apply_key is not None and _active_apply_keys.get(apply_key) == job_id:
+            del _active_apply_keys[apply_key]
 
 
 def _append_event(job_id: str, event: dict[str, Any]) -> None:
@@ -186,16 +224,19 @@ def _execute_job(job_id: str) -> None:
         def on_event(event: dict[str, Any]) -> None:
             _append_event(job_id, event)
 
-        apply_result: ApplyResult = run_apply(
-            request,
-            pat=request.pat or "",
-            dry_run=bool(request.apply_dry_run),
-            emit=on_event,
-            step_filter=request.steps,
-            catalog_limit=request.catalog_limit,
-            should_cancel=cancel_event.is_set,
-            run_id=job_id,
-        )
+        try:
+            apply_result: ApplyResult = run_apply(
+                request,
+                pat=request.pat or "",
+                dry_run=bool(request.apply_dry_run),
+                emit=on_event,
+                step_filter=request.steps,
+                catalog_limit=request.catalog_limit,
+                should_cancel=cancel_event.is_set,
+                run_id=job_id,
+            )
+        finally:
+            _release_apply_key(job_id)
 
         finished = _now()
         # Prefer apply-engine total (step wall time); fall back to job wall clock.
@@ -236,6 +277,7 @@ def _execute_job(job_id: str) -> None:
                 }
             )
     except Exception as exc:  # noqa: BLE001 - surface to job status
+        _release_apply_key(job_id)
         finished = _now()
         duration_ms = int((time.perf_counter() - job_t0) * 1000)
         with _lock:
@@ -253,6 +295,12 @@ def _execute_job(job_id: str) -> None:
                     "message": f"{exc} (after {format_duration_ms(duration_ms)})",
                 }
             )
+
+
+def active_job_count() -> int:
+    """Number of jobs currently queued or running (used by health checks)."""
+    with _lock:
+        return sum(1 for job in _jobs.values() if job["status"] in {"queued", "running"})
 
 
 def get_job(job_id: str, *, since: int = 0) -> JobStatusResponse:

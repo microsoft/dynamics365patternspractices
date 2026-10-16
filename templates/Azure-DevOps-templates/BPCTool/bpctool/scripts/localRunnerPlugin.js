@@ -90,13 +90,27 @@ function waitForHealth(timeoutMs = 20000) {
 function probeHealth() {
   return new Promise((resolve) => {
     const req = http.get(HEALTH, (res) => {
-      res.resume()
-      resolve(res.statusCode === 200)
+      let body = ''
+      res.on('data', (chunk) => {
+        body += chunk
+      })
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          resolve(null)
+          return
+        }
+        try {
+          resolve(JSON.parse(body))
+        } catch {
+          // Health responded 200 but wasn't our JSON shape (unrelated service).
+          resolve({})
+        }
+      })
     })
-    req.on('error', () => resolve(false))
+    req.on('error', () => resolve(null))
     req.setTimeout(800, () => {
       req.destroy()
-      resolve(false)
+      resolve(null)
     })
   })
 }
@@ -169,8 +183,21 @@ export function localRunnerPlugin() {
 
   const start = async (logger = console) => {
     // Never reuse a foreign/stale runner — it will serve old writer code without --reload.
-    if (await probeHealth()) {
-      logger.info?.(`[bpc-runner] Replacing existing listener on :${PORT}`)
+    const health = await probeHealth()
+    if (health) {
+      if (typeof health.active_jobs !== 'number' || health.active_jobs > 0) {
+        // Either a job is in-flight (don't drop it mid-apply) or the listener
+        // isn't our runner at all (no active_jobs field) — refuse instead of
+        // guessing and killing someone else's process or a live run.
+        throw new Error(
+          `Port ${PORT} is already in use by a runner with ${
+            typeof health.active_jobs === 'number'
+              ? `${health.active_jobs} active job(s)`
+              : 'an unrecognized /health response'
+          }. Stop it manually before starting the dev server.`,
+        )
+      }
+      logger.info?.(`[bpc-runner] Replacing idle existing listener on :${PORT}`)
       freeRunnerPort(logger)
       await sleep(400)
     }

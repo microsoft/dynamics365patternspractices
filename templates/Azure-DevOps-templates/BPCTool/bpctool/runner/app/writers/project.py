@@ -42,6 +42,14 @@ def apply_project(
 
     existing = client.get_project_id(project_name)
     if existing:
+        existing_process_id = client.get_project_process_id(existing)
+        if existing_process_id and existing_process_id != process_id:
+            raise AdoError(
+                f'Project "{project_name}" already exists but is bound to a different '
+                f"process (typeId {existing_process_id}, expected {process_id} for "
+                f'"{process_name}"). Pick a different project name or migrate the '
+                "project's process before re-running."
+            )
         stats["project_id"] = existing
         stats["existed"] = True
         emit("project", f"Project already exists: {project_name} ({existing})")

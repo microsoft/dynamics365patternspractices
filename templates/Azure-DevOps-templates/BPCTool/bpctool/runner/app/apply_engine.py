@@ -91,13 +91,31 @@ def run_apply(
     ir.setdefault("targets", {})["project_description"] = (
         request.project_description or ""
     ).strip()
+
+    org_url = normalize_ado_org_url(request.org_url)
+
+    # Dry-run apply never calls Azure DevOps; client is only created for live apply.
+    client = None if dry_run else AdoClient(org_url, pat)
+
+    # Target existence must reflect the real organization for live applies — the
+    # browser-supplied known_*_exists flags are only inventory hints and, when
+    # missing/false, must not be trusted to mean "does not exist". Trusting them
+    # here would let create-only/require-confirmation gates pass and then let
+    # apply_process/apply_project silently reuse + modify an existing target.
+    if client is not None:
+        known_process_exists = client.get_process_id(request.process_name) is not None
+        known_project_exists = client.get_project_id(request.project_name) is not None
+    else:
+        known_process_exists = request.known_process_exists
+        known_project_exists = request.known_project_exists
+
     plan = build_dry_run_plan(
         ir,
         update_policy=request.update_policy,
         confirm_process_update=request.confirm_process_update,
         confirm_project_update=request.confirm_project_update,
-        known_process_exists=request.known_process_exists,
-        known_project_exists=request.known_project_exists,
+        known_process_exists=known_process_exists,
+        known_project_exists=known_project_exists,
         step_filter=step_filter,
     )
     if not plan.ok:
@@ -113,12 +131,9 @@ def run_apply(
             timings=[],
         )
 
-    org_url = normalize_ado_org_url(request.org_url)
     output_dir = default_output_dir(org_url, request.project_name, request.output_root)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Dry-run apply never calls Azure DevOps; client is only created for live apply.
-    client = None if dry_run else AdoClient(org_url, pat)
     step_results: dict[str, Any] = {}
     process_id: str | None = None
 

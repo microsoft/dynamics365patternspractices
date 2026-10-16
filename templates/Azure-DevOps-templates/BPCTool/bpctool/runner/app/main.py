@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 
 from .excel_ir import build_ir, find_template_workbook
 from .fs_browser import list_directory, list_roots
-from .jobs import cancel_job, create_job, get_job, run_dry_run
+from .jobs import ApplyInProgressError, active_job_count, cancel_job, create_job, get_job, run_dry_run
 from .models import DryRunRequest, DryRunResponse, JobCreateRequest, JobStatusResponse
 from .paths import bpc_files_root, output_root, resolve_release_folder
 from .run_outcome import OUTPUT_FILES
@@ -26,8 +26,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,7 +41,7 @@ def _discover_template(release_folder: Path | None) -> Path | None:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, str | int]:
     # Include writer fingerprints so the UI/logs can detect a stale runner.
     writers = Path(__file__).resolve().parent / "writers"
     def _mtime(name: str) -> str:
@@ -52,6 +52,9 @@ def health() -> dict[str, str]:
         "status": "ok",
         "teams_writer_mtime": _mtime("teams.py"),
         "backlog_writer_mtime": _mtime("backlog.py"),
+        # Lets launchers (e.g. the Vite dev plugin) avoid killing a listener
+        # that is mid-apply before replacing it with a freshly reloaded one.
+        "active_jobs": active_job_count(),
     }
 
 
@@ -155,6 +158,8 @@ def output_file(
 def post_job(request: JobCreateRequest) -> JobStatusResponse:
     try:
         return create_job(request)
+    except ApplyInProgressError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

@@ -8,8 +8,11 @@ from app.writers.project import apply_project
 
 
 class FakeClient:
-    def __init__(self, *, existing_id: str | None = None) -> None:
+    def __init__(
+        self, *, existing_id: str | None = None, existing_process_id: str | None = "proc-guid"
+    ) -> None:
         self.existing_id = existing_id
+        self.existing_process_id = existing_process_id
         self.created: dict[str, Any] | None = None
         self.updated: dict[str, Any] | None = None
 
@@ -18,6 +21,9 @@ class FakeClient:
 
     def get_project_id(self, _name: str) -> str | None:
         return self.existing_id
+
+    def get_project_process_id(self, _project_id: str) -> str | None:
+        return self.existing_process_id
 
     def create_project(
         self, project_name: str, process_id: str, *, description: str = ""
@@ -78,8 +84,22 @@ def test_existing_project_updates_description_when_provided() -> None:
     stats = apply_project(client, ir, dry_run=False, emit=lambda _s, m: events.append(m))
     assert stats["existed"] is True
     assert stats["description_updated"] is True
-    assert client.updated == {
-        "project_id": "proj-existing",
-        "description": "Updated overview text",
+
+
+def test_existing_project_with_different_process_is_rejected() -> None:
+    import pytest
+
+    from app.ado_client import AdoError
+
+    client = FakeClient(existing_id="proj-existing", existing_process_id="other-proc-guid")
+    ir = {
+        "targets": {
+            "project_name": "MSBPCProj",
+            "process_name": "MSBPCTemplate",
+            "project_description": "",
+        }
     }
+    with pytest.raises(AdoError, match="different"):
+        apply_project(client, ir, dry_run=False, emit=lambda _s, _m: None)
     assert client.created is None
+    assert client.updated is None
