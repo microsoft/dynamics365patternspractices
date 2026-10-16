@@ -1,0 +1,1 @@
+"""BPC local runner — Excel IR parse, plan, and future apply jobs."""
