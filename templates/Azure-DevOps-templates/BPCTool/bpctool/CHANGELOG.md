@@ -1,8 +1,43 @@
-# Changelog 
+# Changelog
 
 All notable changes to BPCTool (React UI + local runner) are documented here.
 
 ## 2026-10 — Run results a standard user can act on
+
+- **Rehearsal change report**: when the project exists, a rehearsal reads its catalog work items (`workitemsbatch`, 200 per request) and compares them with the workbook. Shown as *Changes since the last import* in the results card and `rehearsal-summary.html`. **`import-changes.csv`** lists every difference: field value, parent, or work item type differs; item not found in Azure DevOps; imported earlier but no longer in the workbook; new row. Each field is marked as usually edited in the workbook or in Azure DevOps. `import-changes.json` holds the counts. Only fields the workbook fills are compared, and formatting differences are ignored (HTML markup, number format, multi-select/tag order, path case, identities, booleans, dates). The report is information only: live Catalog Import is still create-only
+- Rehearsals now make **read-only** Azure DevOps calls, only in the catalog step, through a new `ReadOnlyAdoClient` that refuses anything except GET and the `wiql` / `workitemsbatch` reads. The step looks up the project; if it exists, it reads the project's area paths and states (so a rehearsal's data checks match a live run's) and its catalog work items. If neither the project nor an earlier import exists, the report says there is nothing to compare. If the ID map exists but the project doesn't, it reports that the project was deleted or renamed. An unreadable Azure DevOps (for example an expired PAT) skips the comparison without failing the rehearsal
+- **Existing project without `ado-id-map.csv`**: the rehearsal matches workbook rows to the project's work items by Microsoft ID (+ Process sequence ID), compares them, and flags matched rows under **What needs attention** as rows a live Catalog Import would create again (duplicates). Rows matching several items are listed separately
+- Fix: the project existence check (live runs, project and teams steps) read only the first 100 projects in the organization; it now looks the project up by name
+- Fix: a rehearsal's "a live run would import N" count was too low when `ado-id-map.csv` listed items no longer in the workbook; it now counts only workbook rows, matching the change report's new rows
+- Change report examples for long text (e.g. Description) start just before the first difference, so both sides no longer look identical when the edit is past the first 120 characters
+- Fix: Preview plan's data checks used the Root area path as typed (empty or missing) while runs default it to the project name; both now use the same default
+- **Deprecated / Deleted catalog rows are skipped by default**, as the Microsoft July importer does: a row whose Catalog status contains *Deprecated* or *Deleted* (700 rows in the July workbooks) and every row below it in the Title outline. Listed in the new `skipped-deprecated-deleted.csv`, under *Fixed automatically* in the results card / report, and as a Preview plan notice (Preview plan's data checks skip them too). New Run configuration checkbox **Import Deprecated / Deleted rows** (API `include_deprecated_deleted`, also on `POST /plan/dry-run`) imports them. Existing work items are never closed or removed; a rehearsal reports items imported before their row was retired as *Deprecated or deleted in the workbook — still in Azure DevOps*
+- Docs: workflow & reference-script comparison re-checked against Microsoft's July 2026 package (`setup_wizard.py`, `ado_setup_validation.py`, phases 1–6, `bpc_ado_import`). New rows: pre-run checks, disabled WITs, Test Case `New` state, deprecated / deleted rows, repeated sequence IDs, catalog area / iteration nodes, failure handling, dry run; corrected Multivalue (the July Phase 2 installs or skips controls), create retries, prevalidate and report rows; residual list updated
+- Page header now reads **BPCTool** with a one-line description and four plain steps (connect, name, pick steps, Preview plan → Rehearsal → live); the mode line is in plain language and the browser tab title is *BPCTool*
+- `npm start` on a fresh clone or copy no longer leaves the runner down with *Python runner venv not found*: the launcher runs the Python setup (`ensure-env`) first, logged as `[bpc-setup]`, then starts the runner. When the runner can't be reached, the UI says so and points to the terminal window (status line, path picker, Preview plan, runs) instead of *Failed to fetch*. On page open it keeps retrying the runner defaults for up to 3 minutes while the runner starts
+- Fix: a live run whose first Azure DevOps check failed (expired PAT, network) ended without a summary or results card; it now writes both, with the reason
+- Fix: a rehearsal without `ado-id-map.csv` failed its change report when a project had more than 20,000 items of one type (Azure DevOps' WIQL limit); the Microsoft ID search now reads 10,000 IDs at a time
+- `npm start` / Start BPCTool no longer start the runner with `--reload`, which restarted it (and cut off a run in progress) whenever its code changed, e.g. a `git pull` mid-import. Relaunch to load new code; `npm run dev` keeps `--reload` for development
+- Fix: pressing Cancel just as the last step finished reported a completed run as cancelled
+- An Area Path that is both renamed to the target project and moved under the Root area path now says both in the data checks
+- Fix: a Fetch existing projects / processes still in flight when the org URL or PAT changed recorded its list against the new connection
+- Fix: the **Backlog** step now counts as changing the process for the existing-target policy (it renames, creates and deletes the process's backlog levels, shared by every project on it). A Backlog-only run against an existing process needs **Confirm process update** and is refused under *create-only*, in the UI and the runner
+- Fix: job / plan `steps` must name known steps — an unknown name (e.g. `backlogg`) used to be ignored and report success, and an empty list ran every step. Both are rejected (HTTP 422); `null` still runs every step, and steps always run in engine order
+- Fix: a failed project description update on an existing project now marks the Project step as a warning (listed under What needs attention) instead of reporting success; the run continues
+- Fix: team area assignments are grouped by team name ignoring case, as Azure DevOps does — rows for `Accounting` and `accounting` used to send two updates, the second replacing the first's areas
+- Fix: the **Teams** step turned off *Include sub areas* whenever it updated a team's areas, so a Teams-only re-run left it off until Backlog ran. Teams now sends the Teams sheet's *Include sub areas* value itself
+- Fix: **Page Layout** treated any 400 when adding a field to a work item type as "already there", so the fallback payloads for boolean fields never ran and a rejected field went unreported (and then failed again as a control). Fields already on the type are now read up front and skipped; a 400 tries the next payload and is reported if all fail
+- Page Layout reads each work item type's fields and form once instead of once or twice per field (the August run spent about 10 minutes here for about 1,100 placements); the form is re-read only after a page, group or control is added
+- Teams reads the project's area tree once instead of checking each area node with its own request
+- Backlog configures teams in parallel, using the **Catalog workers** setting (the August run spent about 3 minutes on team settings one team at a time)
+- Preview plan is about twice as fast on first run (about 2.1 s → 1.2 s for the July catalog) and about three times faster on repeat (about 0.65 s): each catalog workbook is read once and reused until the file changes, header names are no longer re-normalized for every row, and the required-field list is built once
+- The runner forgets a job's PAT as soon as the job ends, and keeps only the 20 most recent finished jobs (with their event logs) instead of every job since it started
+- Fix: Cancel during **Backlog** now stops promptly — with teams configured in parallel, every team still queued went on to change its settings after Cancel; now only teams already in progress finish
+- Fix: under **Skip steps for existing targets**, an existing process with a new project still had its backlog levels renamed, created or deleted by the Backlog step. Backlog now leaves the process alone in that case and only sets up iterations and team settings; Preview plan says so
+- Fix: Page Layout treated a 400 when adding an HTML control as success; it is now a warning with the Azure DevOps reason. Warnings for a group or page that couldn't be created now include the reason too
+- Finished jobs no longer keep a second copy of their event log in the stored result (the job's own event list has every event); after a page reload, a job the runner no longer has says it may have been dropped as one of the oldest
+- Removed `docs/reference/MSBPC-process-analysis.md` (a snapshot of the process from one template release, 2026-08-09) and its links in the README and workflow comparison
+- UI hints for **Rehearsal only** and **Root area path**, User Guide, README and workflow comparison updated for the read-only rehearsal and change report; screenshots retaken (connection, actions, rehearsal, results card)
 
 - **Data checks before import** (Preview plan, Rehearsal only, live): Area Path project prefix rewritten to the target project (`MSBPCProj\…` → `<project>\…`); area paths not in the project stripped (TF401347; live runs read the project's area tree); States the type doesn't allow stripped (live runs read each type's states, e.g. `Deprecated`; state casing aligned and listed as an automatic fix); text over 255 characters in string/picklist fields and Title shortened to 254 + `…` (TF401324; multi-select keeps whole values). A removed picklist value is no longer reported again as "required field empty"
 - **Preview plan** shows a **Catalog data checks** panel (counts, example file/row/value, how to fix) — `data_checks` on `POST /plan/dry-run`
@@ -17,12 +52,21 @@ All notable changes to BPCTool (React UI + local runner) are documented here.
 - Fix: TF401347 on **Iteration Path** was explained as an area-path problem in `import-failures.csv`; it now names the iteration path and its fix
 - Fix: template placeholder count no longer double-counts an area row whose path and default segment both changed
 - Data checks: a cell with several `;`-separated values in a field the template marks single-select (e.g. `Accounts payable; Warehouse management` in **Module**) is reported as *Several values in a field the template marks single-select*, with the fix (set **Multi-select field = Yes** in the template Fields sheet, re-run Process Template and Page Layout), instead of the misleading *Value is not in the picklist*
-- Fix: catalog rows that repeat another row's **Process sequence ID** were silently dropped (31 rows in the July Business Process Catalog workbook), and their child rows were linked under the first row. Repeats now get their own tracking key in `ado-id-map.csv` (`<id>#<Microsoft ID>`; the first row keeps the plain ID so existing files still resume). The work item's Process sequence ID field is not changed, are imported on the next Catalog Import, and are listed under *Fixed automatically*. Preview plan's catalog row count now matches the number imported. Children already imported under the wrong parent are reported as `conflict_existing_parent` in `backfill-links-report.csv` and left unchanged
+- Fix: catalog rows that repeat another row's **Process sequence ID** were silently dropped (31 rows in the July Business Process Catalog workbook), and their child rows were linked under the first row. Repeats now get their own tracking key in `ado-id-map.csv` (`<id>#<Microsoft ID>`; the first row keeps the plain ID so existing files still resume). The work item's Process sequence ID field is not changed. Repeats are imported on the next Catalog Import and listed under *Fixed automatically*. Preview plan's catalog row count now matches the number imported. Children already imported under the wrong parent are reported as `conflict_existing_parent` in `backfill-links-report.csv` and left unchanged
 - Fix: links inside the HTML report (failures, data checks) opened from the results card now work with a custom **Run output folder**
 - When a live run doesn't include Catalog Import but an earlier one left failures, the headline says the problems are from the earlier Catalog Import instead of reporting them as this run's result
 - New run mode **Run from selected step onward**: runs the selected card and every later card, including completed ones (Process + Layout gate still applies)
 - Durations of an hour or more show as `1h 55m`
 - Removed wording that described BPCTool as part of a larger toolkit — it is a standalone app
+- Fix: two rehearsal/live runs for the same org + project could run at once (e.g. two browser tabs), creating duplicate work items and overwriting reports. The runner now refuses the second with HTTP 409 until the first finishes
+- Security: the runner no longer sends wildcard CORS headers, so other websites open in the browser can't read it (job results, output files, the local folder browser), and it only answers requests addressed to `127.0.0.1` / `localhost` (blocks DNS rebinding). The UI is unaffected — it uses the `/api` proxy
+- Fix: with the existing process/project list not fetched, **Create only** and **Require confirmation** were not enforced and a live run updated existing targets. Live runs now check Azure DevOps for the process and project before applying the policy; Preview plan / Rehearsal say when existence wasn't checked
+- Existing projects and processes load automatically once the org URL and PAT are filled in, and again after each live run, so the confirm boxes and Preview plan / Rehearsal policy checks are right without clicking **Fetch existing …** (the buttons now refresh). The UI's confirm rules now only apply to the steps that change that target (process: Process Template / Page Layout; project: Project Creation), as the runner's do, so Teams / Backlog / Catalog re-runs aren't blocked by an existing project
+- Fix: Project Creation reused an existing project without checking its process. A project created from a different process now stops the run with how to fix it
+- Fix: a **Root area path** below the project (e.g. `Proj\Imported`) was shown in the plan but ignored by live runs. Teams & areas now creates the area tree and team assignments under it, and Catalog Import moves catalog Area Paths there to match (*Area path placed under the Root area path* in the data checks)
+- Fix: launching BPCTool could stop a runner with a run in progress, or an unrelated program on port 8787. The launcher now reuses a busy BPCTool runner, replaces only an idle one, and leaves other programs alone. `/health` reports `active_jobs`
+- Fix (Windows): first-launch setup failed when the BPCTool folder path contains spaces (pip ran through `cmd.exe` unquoted)
+- Security: dev-tool dependencies updated to clear `npm audit` (vitest / @vitest/mocker 4.1.12, brace-expansion 5.0.12, nanoid 3.3.20, source-map-js 1.2.2); no change to the app's runtime dependencies
 - Tests: `test_failure_explain.py`, `test_run_outcome.py`, more `test_catalog_validate.py` cases
 - **Docs rationalized:** one [`README.md`](../README.md) at the repo root covers the tool and its usage (requirements, launch, checklist, screenshots, folder layout, modes, results, documentation index, developer notes). Removed `bpctool/README.md`, `bpctool/docs/README.md`, and `bpctool/docs/reference/README.md`; their content is in the root README. Detailed docs stay in `USER_GUIDE.md`, `CHANGELOG.md`, and `docs/`
 - **Docs refreshed for the current UI:** new infographic [`docs/images/bpctool-overview.svg`](docs/images/bpctool-overview.svg) (what you need, how you use it, what you get) at the top of the README and USER_GUIDE. All README screenshots retaken (dark mode, same width): the workflow shot shows the four run modes with **Run from selected step onward**, the run configuration shot shows the **Run output folder**, and new `ui-preview-plan.png` and `ui-results-card.png` show the *Project name applied* notice, catalog data checks, and the results card
@@ -38,7 +82,7 @@ All notable changes to BPCTool (React UI + local runner) are documented here.
 
 ## 2026-10 — Folder layout: release folders, output root, `bpctool.env`
 
-- **No hard-coded user paths.** Catalog root defaults to `~/BPC Files`; the UI catalog field starts empty and is filled from the runner
+- **No hard-coded user paths.** Catalog root defaults to `~/BPC Files` (was `/Users/bill/BPC Files` in runner + UI); the UI catalog field starts empty and is filled from the runner
 - **Release folders:** new `runner/app/paths.py`. When the root holds no workbooks itself, `/defaults` picks the newest release subfolder (`YYYY-Qn` names by name, otherwise newest workbook mtime; `_` / `.` folders ignored) and returns `release_label`, `bpc_files_root`, `output_root`. Flat layouts still work
 - UI loads runner defaults once on page open without overwriting typed paths; release folder name pre-fills a blank **Workbook version**; Run configuration shows where run outputs go and why to keep them. Path picker adds a "Latest release" shortcut
 - **Output root:** `BPCTOOL_OUTPUT_DIR` overrides `bpctool/runner-out` (keeps `ado-id-map.csv` safe from app-folder replacement)
@@ -52,7 +96,7 @@ All notable changes to BPCTool (React UI + local runner) are documented here.
 - The template guideline, catalog workbooks, and Microsoft reference scripts are refreshed quarterly; code, UI, tests, and docs no longer reference one specific release
 - **Template discovery** (`/defaults`, pytest fixture): newest `ADO template guideline*.xlsx` in the catalog folder (any release suffix) instead of a fixed file name; shared `excel_ir.find_template_workbook`
 - UI **Workbook version** defaults to blank (placeholder suggests a release label such as `2026-Q3`); path examples no longer name a release
-- Docs renamed: `docs/workflow-and-july-comparison.md` → [`docs/workflow-and-script-comparison.md`](./docs/workflow-and-script-comparison.md); `docs/reference/MSBPC-Jul26-analysis.md` → [`docs/reference/MSBPC-process-analysis.md`](./docs/reference/MSBPC-process-analysis.md)
+- Docs renamed: `docs/workflow-and-july-comparison.md` → [`docs/workflow-and-script-comparison.md`](./docs/workflow-and-script-comparison.md); `docs/reference/MSBPC-Jul26-analysis.md` → `docs/reference/MSBPC-process-analysis.md`
 - USER_GUIDE: quarterly release note, **one release per catalog folder**, and §10 "Moving to a new quarterly release" checklist
 - `IR_VERSION` → `2026.10-1`
 
@@ -148,7 +192,7 @@ All notable changes to BPCTool (React UI + local runner) are documented here.
 
 ## 2026-08 — Reference: post-create process analysis
 
-- Added [`docs/reference/MSBPC-process-analysis.md`](./docs/reference/MSBPC-process-analysis.md) — WIT/states/fields snapshot of process `MSBPCTemplate` after template apply
+- Added `docs/reference/MSBPC-process-analysis.md` — WIT/states/fields snapshot of process `MSBPCTemplate` after template apply
 
 ## 2026-08 — Repo root cleanup
 
@@ -307,7 +351,7 @@ API surface:
 ### Inputs / defaults
 
 - Template: user-provided ADO guideline `.xlsx` (optional discover under catalog folder / `BPCTOOL_TEMPLATE`)
-- Catalog sources default: `/Users/you/BPC Files` (current quarterly package)
+- Catalog sources default: `/Users/bill/BPC Files` (current quarterly package)
 - Apply artifacts: `runner-out/<org>_<project>/` (gitignored)
 
 ### Tooling

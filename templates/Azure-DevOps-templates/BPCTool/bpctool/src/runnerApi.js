@@ -19,6 +19,29 @@ const sleep = (ms, signal) =>
     signal?.addEventListener('abort', onAbort, { once: true })
   })
 
+export const RUNNER_UNREACHABLE =
+  "Can't reach the local runner. On first launch it sets itself up (about a minute) — wait for “[bpc-runner] Ready” in the terminal window BPCTool is running in. If that window shows an error instead, run npm run setup (or double-click Start BPCTool), then start BPCTool again."
+
+/** fetch() for /api calls; a runner that isn't running becomes RUNNER_UNREACHABLE. */
+export async function runnerFetch(url, options) {
+  let response
+  try {
+    response = await fetch(url, options)
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw error
+    }
+    throw new Error(RUNNER_UNREACHABLE, { cause: error })
+  }
+  // The dev-server proxy answers 502 when nothing listens on the runner port.
+  if (response.status === 502) {
+    const error = new Error(RUNNER_UNREACHABLE)
+    error.status = 502
+    throw error
+  }
+  return response
+}
+
 async function parsePayload(response) {
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
@@ -38,7 +61,7 @@ async function parsePayload(response) {
 const MAX_POLL_FAILURES = 8
 
 export async function createRunnerJob(body, { signal } = {}) {
-  const response = await fetch('/api/jobs', {
+  const response = await runnerFetch('/api/jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -49,13 +72,13 @@ export async function createRunnerJob(body, { signal } = {}) {
 
 export async function getRunnerJob(jobId, { signal, since = 0 } = {}) {
   const query = since > 0 ? `?since=${since}` : ''
-  const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}${query}`, { signal })
+  const response = await runnerFetch(`/api/jobs/${encodeURIComponent(jobId)}${query}`, { signal })
   return parsePayload(response)
 }
 
 /** Ask the runner to stop the job at its next safe checkpoint. */
 export async function cancelRunnerJob(jobId) {
-  const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+  const response = await runnerFetch(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
     method: 'POST',
   })
   return parsePayload(response)
@@ -150,6 +173,7 @@ export function buildRunnerJobBody({
   steps = null,
   catalogLimit = null,
   convertMarkdownToHtml = false,
+  includeDeprecatedDeleted = false,
   catalogParallelWorkers = 4,
   outputRoot = '',
 }) {
@@ -165,14 +189,15 @@ export function buildRunnerJobBody({
     update_policy: updatePolicy,
     confirm_process_update: Boolean(confirmProcessUpdate),
     confirm_project_update: Boolean(confirmProjectUpdate),
-    known_process_exists: Boolean(knownProcessExists),
-    known_project_exists: Boolean(knownProjectExists),
+    known_process_exists: knownProcessExists ?? null,
+    known_project_exists: knownProjectExists ?? null,
     root_area_path: rootAreaPath || projectName,
     mode,
     apply_dry_run: Boolean(applyDryRun),
     steps,
     catalog_limit: catalogLimit,
     convert_markdown_to_html: Boolean(convertMarkdownToHtml),
+    include_deprecated_deleted: Boolean(includeDeprecatedDeleted),
     output_root: outputRoot.trim() || null,
     catalog_parallel_workers: Math.max(
       1,

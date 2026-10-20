@@ -8,12 +8,19 @@ from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
 from .excel_ir import build_ir, find_template_workbook
 from .fs_browser import list_directory, list_roots
-from .jobs import ApplyInProgressError, active_job_count, cancel_job, create_job, get_job, run_dry_run
+from .jobs import (
+    ApplyInProgressError,
+    active_job_count,
+    cancel_job,
+    create_job,
+    get_job,
+    run_dry_run,
+)
 from .models import DryRunRequest, DryRunResponse, JobCreateRequest, JobStatusResponse
 from .paths import bpc_files_root, output_root, resolve_release_folder
 from .run_outcome import OUTPUT_FILES
@@ -24,13 +31,9 @@ app = FastAPI(
     version="0.2.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# No CORS: the UI reaches the runner through the Vite /api proxy, so web pages on other
+# origins cannot read runner responses. The Host check blocks DNS-rebinding pages.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 def _discover_template(release_folder: Path | None) -> Path | None:
     env = (os.environ.get("BPCTOOL_TEMPLATE") or "").strip()
@@ -52,8 +55,6 @@ def health() -> dict[str, str | int]:
         "status": "ok",
         "teams_writer_mtime": _mtime("teams.py"),
         "backlog_writer_mtime": _mtime("backlog.py"),
-        # Lets launchers (e.g. the Vite dev plugin) avoid killing a listener
-        # that is mid-apply before replacing it with a freshly reloaded one.
         "active_jobs": active_job_count(),
     }
 

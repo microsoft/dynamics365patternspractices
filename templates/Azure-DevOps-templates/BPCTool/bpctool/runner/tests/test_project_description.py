@@ -4,15 +4,18 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
+from app.ado_client import AdoError
 from app.writers.project import apply_project
 
 
 class FakeClient:
     def __init__(
-        self, *, existing_id: str | None = None, existing_process_id: str | None = "proc-guid"
+        self, *, existing_id: str | None = None, existing_process: str = "proc-guid"
     ) -> None:
         self.existing_id = existing_id
-        self.existing_process_id = existing_process_id
+        self.existing_process = existing_process
         self.created: dict[str, Any] | None = None
         self.updated: dict[str, Any] | None = None
 
@@ -22,8 +25,11 @@ class FakeClient:
     def get_project_id(self, _name: str) -> str | None:
         return self.existing_id
 
-    def get_project_process_id(self, _project_id: str) -> str | None:
-        return self.existing_process_id
+    def get_project_process_id(self, _project_id: str) -> str:
+        return self.existing_process
+
+    def list_processes(self) -> list[dict[str, Any]]:
+        return [{"typeId": "proc-guid", "name": "MSBPCTemplate"}, {"typeId": "agile-guid", "name": "Agile"}]
 
     def create_project(
         self, project_name: str, process_id: str, *, description: str = ""
@@ -84,22 +90,33 @@ def test_existing_project_updates_description_when_provided() -> None:
     stats = apply_project(client, ir, dry_run=False, emit=lambda _s, m: events.append(m))
     assert stats["existed"] is True
     assert stats["description_updated"] is True
-
-
-def test_existing_project_with_different_process_is_rejected() -> None:
-    import pytest
-
-    from app.ado_client import AdoError
-
-    client = FakeClient(existing_id="proj-existing", existing_process_id="other-proc-guid")
-    ir = {
-        "targets": {
-            "project_name": "MSBPCProj",
-            "process_name": "MSBPCTemplate",
-            "project_description": "",
-        }
+    assert client.updated == {
+        "project_id": "proj-existing",
+        "description": "Updated overview text",
     }
-    with pytest.raises(AdoError, match="different"):
-        apply_project(client, ir, dry_run=False, emit=lambda _s, _m: None)
     assert client.created is None
+
+
+def test_failed_description_update_is_a_step_warning() -> None:
+    from app.run_outcome import describe_step
+
+    class DescriptionRefused(FakeClient):
+        def update_project_description(self, project_id: str, description: str) -> None:
+            raise AdoError("ADO 403 Forbidden: no permission", status=403)
+
+    client = DescriptionRefused(existing_id="proj-existing")
+    ir = {"targets": {"project_name": "MSBPCProj", "process_name": "MSBPCTemplate", "project_description": "New"}}
+    stats = apply_project(client, ir, dry_run=False, emit=lambda _s, _m: None)
+    assert stats["description_updated"] is False
+    assert stats["warnings"] == 1
+    status, text = describe_step("project", stats, dry_run=False)
+    assert status == "warning"
+    assert "description could not be updated: ADO 403 Forbidden" in text
+
+
+def test_existing_project_on_another_process_is_rejected() -> None:
+    client = FakeClient(existing_id="proj-existing", existing_process="AGILE-GUID")
+    ir = {"targets": {"project_name": "MSBPCProj", "process_name": "MSBPCTemplate"}}
+    with pytest.raises(AdoError, match='uses process "Agile", not "MSBPCTemplate"'):
+        apply_project(client, ir, dry_run=False, emit=lambda _s, _m: None)
     assert client.updated is None

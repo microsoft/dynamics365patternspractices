@@ -191,3 +191,138 @@ def test_rehearsal_run_end_to_end_writes_summary(template_path, tmp_path) -> Non
     assert result.output_dir == str(tmp_path / "contoso_Contoso-BPC")
     assert (tmp_path / "contoso_Contoso-BPC" / "rehearsal-summary.html").is_file()
     assert result.outcome and result.outcome["status"] == "rehearsal"
+
+
+def test_skip_existing_run_tells_backlog_to_leave_the_process_alone(
+    template_path, tmp_path, monkeypatch
+) -> None:
+    from app import apply_engine
+    from app.models import DryRunRequest
+
+    seen: dict[str, bool] = {}
+
+    def fake_backlog(_client, _ir, *, process_changes=True, **_kwargs):
+        seen["process_changes"] = process_changes
+        return {"warnings": 0}
+
+    monkeypatch.setattr(apply_engine, "apply_backlog", fake_backlog)
+    request = DryRunRequest(
+        org_url="https://dev.azure.com/contoso",
+        process_name="Business Process Catalog",
+        project_name="Contoso-BPC",
+        excel_file=str(template_path),
+        output_root=str(tmp_path),
+        update_policy="skip-existing",
+        known_process_exists=True,
+    )
+    apply_engine.run_apply(request, pat="", dry_run=True, step_filter=["backlog"])
+    assert seen == {"process_changes": False}
+
+    seen.clear()
+    fresh = request.model_copy(update={"known_process_exists": False})
+    apply_engine.run_apply(fresh, pat="", dry_run=True, step_filter=["backlog"])
+    assert seen == {"process_changes": True}
+
+
+def test_live_run_checks_ado_for_existing_targets_without_inventory(
+    template_path, tmp_path, monkeypatch
+) -> None:
+    from app import apply_engine
+    from app.models import DryRunRequest
+
+    class ExistingTargets:
+        def __init__(self, *_args) -> None:
+            pass
+
+        def get_process_id(self, _name: str) -> str:
+            return "proc-guid"
+
+        def get_project_id(self, _name: str) -> None:
+            return None
+
+    monkeypatch.setattr(apply_engine, "AdoClient", ExistingTargets)
+    request = DryRunRequest(
+        org_url="https://dev.azure.com/contoso",
+        process_name="Business Process Catalog",
+        project_name="Contoso-BPC",
+        excel_file=str(template_path),
+        output_root=str(tmp_path),
+        update_policy="create-only",
+    )
+    result = apply_engine.run_apply(request, pat="x", dry_run=False, step_filter=["process"])
+    assert not result.ok
+    assert 'Process "Business Process Catalog" already exists and policy is create-only' in result.error
+    assert "the browser hadn't loaded its list of existing processes" in result.error
+    assert "Click Fetch existing processes in the Connection section so the confirm box appears" in result.error
+
+    stale = request.model_copy(update={"known_process_exists": False})
+    result = apply_engine.run_apply(stale, pat="x", dry_run=False, step_filter=["process"])
+    assert "wasn't in the browser's list of existing processes (the list was out of date)" in result.error
+
+    preview = apply_engine.build_dry_run_plan(
+        apply_engine.build_ir(str(template_path), process_name="P1", project_name="Proj1"),
+        update_policy="create-only",
+        confirm_process_update=False,
+        confirm_project_update=False,
+        known_process_exists=None,
+        known_project_exists=False,
+        step_filter=["process", "project"],
+    )
+    assert any("Not known whether the process already exists" in w for w in preview.warnings)
+
+
+def test_live_run_writes_summary_when_ado_check_fails(template_path, tmp_path, monkeypatch) -> None:
+    from app import apply_engine
+    from app.ado_client import AdoError
+    from app.models import DryRunRequest
+
+    class ExpiredPat:
+        def __init__(self, *_args) -> None:
+            pass
+
+        def get_process_id(self, _name: str) -> str:
+            raise AdoError("Azure DevOps returned a sign-in page (HTTP 203)", status=401)
+
+    monkeypatch.setattr(apply_engine, "AdoClient", ExpiredPat)
+    request = DryRunRequest(
+        org_url="https://dev.azure.com/contoso",
+        process_name="Business Process Catalog",
+        project_name="Contoso-BPC",
+        excel_file=str(template_path),
+        output_root=str(tmp_path),
+    )
+    events: list[dict] = []
+    result = apply_engine.run_apply(request, pat="x", dry_run=False, step_filter=["process"], emit=events.append)
+    assert not result.ok
+    assert result.error.startswith("Could not check the process and project in Azure DevOps before the run")
+    assert "sign-in page" in result.error
+    assert result.outcome and result.outcome["status"] == "failed"
+    assert (tmp_path / "contoso_Contoso-BPC" / "bpc-ado-setup-summary.html").is_file()
+    assert any(event["type"] == "job-error" for event in events)
+
+
+def test_cancel_after_the_last_step_still_counts_as_finished(template_path, tmp_path) -> None:
+    from app.apply_engine import run_apply
+    from app.models import DryRunRequest
+
+    request = DryRunRequest(
+        org_url="https://dev.azure.com/contoso",
+        process_name="Business Process Catalog",
+        project_name="Contoso-BPC",
+        excel_file=str(template_path),
+        output_root=str(tmp_path),
+    )
+    steps_done: list[str] = []
+
+    def cancel_once_report_finished() -> bool:
+        return "report" in steps_done
+
+    result = run_apply(
+        request,
+        pat="",
+        dry_run=True,
+        step_filter=["report"],
+        should_cancel=cancel_once_report_finished,
+        emit=lambda event: event["type"] == "step-completed" and steps_done.append(event["stepId"]),
+    )
+    assert result.ok and not result.cancelled, result.error

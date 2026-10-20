@@ -86,6 +86,11 @@ def apply_layout(
 
         stats["wits_processed"] += 1
         enc_wit = quote(wit_api_id, safe="")
+        layout_path = f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout"
+        wit_fields = _wit_field_refs(client, process_id, enc_wit)
+        # Read once per type; re-read only after this run adds a page, group or control.
+        layout: dict[str, Any] | None = None
+        stale = True
 
         for label, hidden in placements:
             field = fields_by_label.get(label)
@@ -108,7 +113,7 @@ def apply_layout(
 
             # Add field to WIT (booleans require defaultValue — VS403099)
             field_ok = _ensure_field_on_wit(
-                client, process_id, enc_wit, field, emit=emit, wit_name=wit_name
+                client, process_id, enc_wit, field, emit=emit, wit_name=wit_name, present=wit_fields
             )
             if field_ok is True:
                 stats["fields_added"] += 1
@@ -120,15 +125,14 @@ def apply_layout(
             group_name = field.get("group_name") or label
             section_label = field.get("group_location") or "Section1"
 
-            try:
-                layout = client.get(
-                    f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout",
-                    api_version="7.1-preview.1",
-                )
-            except AdoError as exc:
-                emit("layout", f"Layout locked/unavailable for {wit_name}: {exc}")
-                stats["warnings"] += 1
-                break
+            if stale:
+                try:
+                    layout = client.get(layout_path, api_version="7.1-preview.1")
+                    stale = False
+                except AdoError as exc:
+                    emit("layout", f"Layout locked/unavailable for {wit_name}: {exc}")
+                    stats["warnings"] += 1
+                    break
 
             group_id, control = _find_control(layout, ref)
             if hidden:
@@ -144,6 +148,7 @@ def apply_layout(
                     if _set_control_visibility(
                         client, process_id, enc_wit, group_id, ref, visible=False, emit=emit
                     ):
+                        control["visible"] = False
                         stats["controls_hidden"] += 1
                     else:
                         stats["warnings"] += 1
@@ -154,6 +159,7 @@ def apply_layout(
                     if _set_control_visibility(
                         client, process_id, enc_wit, group_id, ref, visible=True, emit=emit
                     ):
+                        control["visible"] = True
                         stats["controls_shown"] += 1
                     else:
                         stats["warnings"] += 1
@@ -185,31 +191,33 @@ def apply_layout(
                     group_order,
                     order,
                     layout,
+                    emit=emit,
+                    wit_name=wit_name,
                 )
+                stale = True
                 if ok:
                     stats["html_controls"] += 1
                 else:
-                    emit("layout", f"HTML control {ref} on {wit_name}: failed")
                     stats["warnings"] += 1
                 continue
 
             group_id = _ensure_group(
-                client, process_id, enc_wit, page_id, section_id, layout, group_name, group_order
+                client,
+                process_id,
+                enc_wit,
+                page_id,
+                section_id,
+                layout,
+                group_name,
+                group_order,
+                emit=emit,
+                wit_name=wit_name,
             )
             if not group_id:
-                emit("layout", f"Could not ensure group '{group_name}' on {wit_name}")
                 stats["warnings"] += 1
                 continue
 
-            # Refresh layout so the new group is present before control POST.
-            try:
-                layout = client.get(
-                    f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout",
-                    api_version="7.1-preview.1",
-                )
-            except AdoError:
-                pass
-
+            stale = True
             if _add_control_to_group(
                 client,
                 process_id,
@@ -357,9 +365,12 @@ def _ensure_page(
     page = _find_page(layout, page_name)
     if page and page.get("id"):
         return page.get("id"), layout
+    layout_path = f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout"
+    error: AdoError | None = None
+    page_id = None
     try:
         created = client.post(
-            f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout/pages",
+            f"{layout_path}/pages",
             json_body={
                 "label": page_name,
                 "order": order,
@@ -369,27 +380,26 @@ def _ensure_page(
             api_version="7.1-preview.1",
         )
         page_id = created.get("id") if created else None
-        layout = client.get(
-            f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout",
-            api_version="7.1-preview.1",
-        )
-        if not page_id:
-            page = _find_page(layout, page_name)
-            page_id = page.get("id") if page else None
-        return page_id, layout
     except AdoError as exc:
-        if exc.status in {400, 409}:
-            try:
-                layout = client.get(
-                    f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/layout",
-                    api_version="7.1-preview.1",
-                )
-            except AdoError:
-                return None, layout
-            page = _find_page(layout, page_name)
-            return (page.get("id") if page else None), layout
-        emit("layout", f"Could not create page '{page_name}' on {wit_name}: {exc}")
+        if exc.status not in {400, 409}:
+            emit("layout", f"Could not create page '{page_name}' on {wit_name}: {exc}")
+            return None, layout
+        # The page may already exist (e.g. an earlier request whose response was lost).
+        error = exc
+    try:
+        layout = client.get(layout_path, api_version="7.1-preview.1")
+    except AdoError as exc:
+        if page_id:
+            return page_id, layout
+        emit("layout", f"Could not re-read the layout of {wit_name} after adding page '{page_name}': {exc}")
         return None, layout
+    if not page_id:
+        page = _find_page(layout, page_name)
+        page_id = page.get("id") if page else None
+    if not page_id:
+        reason = error or "Azure DevOps returned no page id"
+        emit("layout", f"Could not create page '{page_name}' on {wit_name}: {reason}")
+    return page_id, layout
 
 
 def _add_control_to_group(
@@ -548,6 +558,22 @@ def _boolean_field_variants(ref: str) -> list[dict[str, Any]]:
     return variants
 
 
+def _wit_field_refs(client: AdoClient, process_id: str, enc_wit: str) -> set[str] | None:
+    """Lowercase reference names already on the WIT (incl. inherited), or None if unreadable."""
+    try:
+        data = client.get(
+            f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/fields",
+            api_version="7.1-preview.2",
+        ) or {}
+    except AdoError:
+        return None
+    return {
+        str(item.get("referenceName") or "").lower()
+        for item in data.get("value") or []
+        if item.get("referenceName")
+    }
+
+
 def _ensure_field_on_wit(
     client: AdoClient,
     process_id: str,
@@ -556,11 +582,19 @@ def _ensure_field_on_wit(
     *,
     emit: Emit,
     wit_name: str,
+    present: set[str] | None = None,
 ) -> bool | None:
-    """Add field to WIT. Returns True if newly added, None if already present, False on failure."""
+    """Add field to WIT. Returns True if newly added, None if already present, False on failure.
+
+    ``present`` (from :func:`_wit_field_refs`) skips the POST for fields already on the type.
+    A 400 is a real rejection (e.g. VS403099 for a boolean default), so the next payload
+    variant is tried; only 409 or an "already" message means the field is there.
+    """
     ref = field.get("reference_name")
     if not ref:
         return False
+    if present is not None and ref.lower() in present:
+        return None
     # Prefer the reference scripts' camelCase segment; ADO accepts both, but match the script path.
     path = f"/_apis/work/processes/{process_id}/workItemTypes/{enc_wit}/fields"
     payloads = [_wit_field_payload(field)]
@@ -571,12 +605,15 @@ def _ensure_field_on_wit(
     for payload in payloads:
         try:
             client.post(path, json_body=payload, api_version="7.1-preview.2")
+            if present is not None:
+                present.add(ref.lower())
             return True
         except AdoError as exc:
-            if exc.status in {400, 409}:
+            if exc.status == 409 or "already" in str(exc).lower():
                 return None
             last_error = exc
-            continue
+            if exc.status != 400:
+                break
 
     if last_error:
         kind = "boolean field" if _is_boolean_field(field) else "field"
@@ -739,6 +776,9 @@ def _ensure_group(
     layout: dict[str, Any] | None,
     group_label: str,
     group_order: int = 1,
+    *,
+    emit: Emit,
+    wit_name: str,
 ) -> str | None:
     for page in (layout or {}).get("pages") or []:
         if page.get("id") != page_id:
@@ -760,9 +800,13 @@ def _ensure_group(
             },
             api_version="7.1-preview.1",
         )
-        return created.get("id") if created else None
-    except AdoError:
+    except AdoError as exc:
+        emit("layout", f"Could not create group '{group_label}' on {wit_name}: {exc}")
         return None
+    group_id = created.get("id") if created else None
+    if not group_id:
+        emit("layout", f"Group '{group_label}' on {wit_name}: Azure DevOps returned no group id")
+    return group_id
 
 
 def _add_html_control(
@@ -777,6 +821,9 @@ def _add_html_control(
     group_order: int,
     field_order: int,
     layout: dict[str, Any] | None,
+    *,
+    emit: Emit,
+    wit_name: str,
 ) -> bool:
     """HTML controls must be created inside a new group payload (reference layout behavior)."""
     if _control_exists_on_page(layout, page_id, ref):
@@ -808,6 +855,7 @@ def _add_html_control(
         )
         return True
     except AdoError as exc:
-        if exc.status in {400, 409}:
+        if exc.status == 409:
             return True
+        emit("layout", f"HTML control {ref} on {wit_name}: {exc}")
         return False

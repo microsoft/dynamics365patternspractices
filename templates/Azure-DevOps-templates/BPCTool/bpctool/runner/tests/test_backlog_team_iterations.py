@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
+
+import pytest
 
 from app.writers.backlog import (
     _collect_iteration_ids,
@@ -153,6 +156,101 @@ def test_team_settings_payload_empty_without_root() -> None:
     )
     # Must not set macro alone — that produces the empty Backlog iteration UI state.
     assert payload == {}
+
+
+def _backlog_ir(team_names: list[str]) -> dict[str, Any]:
+    return {
+        "targets": {"project_name": "MSBPCProj", "process_name": "MSBPCTemplate"},
+        "counts": {"backlogs": 0, "iteration_paths": 2, "teams": len(team_names)},
+        "process": {"backlogs": [], "work_item_types": []},
+        "project": {
+            "iteration_paths": [
+                {"path": "Phase 1 - Initiate", "level": "1"},
+                {"path": "Phase 1 - Initiate\\Sprint 1", "level": "2"},
+            ],
+            "teams": [
+                {
+                    "name": name,
+                    "bug_behavior": "asRequirements",
+                    "include_sub_areas": "Yes",
+                    "backlog_iteration": "@currentIteration",
+                }
+                for name in team_names
+            ],
+        },
+    }
+
+
+def test_apply_backlog_parallel_teams_match_serial_counts() -> None:
+    names = [f"Team {n}" for n in range(9)]
+    serial_client = BacklogFakeClient()
+    serial = apply_backlog(serial_client, _backlog_ir(names), dry_run=False, emit=lambda *_: None)
+    parallel_client = BacklogFakeClient()
+    parallel = apply_backlog(
+        parallel_client, _backlog_ir(names), dry_run=False, emit=lambda *_: None, workers=4
+    )
+
+    assert parallel == serial
+    assert parallel["team_settings"] == 9
+    assert parallel["team_iterations"] == 9 * 2
+    assert sorted(parallel_client.team_iters) == sorted(f"MSBPCProj/{n}" for n in names)
+
+
+def test_cancel_stops_queued_teams_when_parallel() -> None:
+    class Cancelled(Exception):
+        pass
+
+    cancelled = threading.Event()
+
+    def emit(_step: str, message: str) -> None:
+        if "Updated team settings" in message:
+            cancelled.set()
+        if cancelled.is_set():
+            raise Cancelled()
+
+    client = BacklogFakeClient()
+    with pytest.raises(Cancelled):
+        apply_backlog(
+            client, _backlog_ir([f"Team {n}" for n in range(12)]), dry_run=False, emit=emit, workers=4
+        )
+    patched = {p["project"] for p in client.patches if p["path"] == "/_apis/work/teamsettings"}
+    # Only teams already in flight when the cancel landed finish their settings PATCH.
+    assert 1 <= len(patched) <= 4
+
+
+def test_skip_existing_process_leaves_backlog_levels_alone() -> None:
+    class RecordingClient(BacklogFakeClient):
+        def __init__(self) -> None:
+            super().__init__()
+            self.process_calls: list[str] = []
+
+        def get(self, path: str, **kwargs: Any) -> Any:
+            if "/_apis/work/processes" in path:
+                self.process_calls.append(path)
+            return super().get(path, **kwargs)
+
+        def put(self, path: str, **kwargs: Any) -> Any:
+            self.process_calls.append(path)
+            return super().put(path, **kwargs)
+
+        def get_process_id(self, _name: str) -> str:
+            self.process_calls.append("get_process_id")
+            return "proc-1"
+
+    client = RecordingClient()
+    events: list[str] = []
+    stats = apply_backlog(
+        client,
+        _backlog_ir(["Accounting"]),
+        dry_run=False,
+        emit=lambda _s, m: events.append(m),
+        process_changes=False,
+    )
+    assert client.process_calls == []
+    assert not any("/_apis/work/processes" in p["path"] for p in client.posts + client.patches)
+    assert stats["behaviors"] == 0
+    assert stats["team_settings"] == 1
+    assert any("left as they are" in m for m in events)
 
 
 def test_apply_backlog_assigns_iterations_to_each_team() -> None:

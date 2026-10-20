@@ -1,0 +1,3 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/templates/Azure-DevOps-templates/BPCTool/bpctool/runner/.venv/Scripts/python.exe"
+}

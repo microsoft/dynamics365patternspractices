@@ -17,7 +17,7 @@ from .models import (
     JobCreateRequest,
     JobStatusResponse,
 )
-from .catalog_import import load_catalog_drafts
+from .catalog_import import load_catalog_drafts, split_retired_drafts
 from .catalog_validate import prevalidate_catalog_drafts, prevalidate_summary
 from .mapping import build_mapping_from_ir
 from .org_url import normalize_ado_org_url
@@ -27,24 +27,23 @@ from .timing import format_duration_ms
 
 _lock = threading.Lock()
 _jobs: dict[str, dict[str, Any]] = {}
-# Guards against duplicate work items / overwritten reports when two apply
-# requests target the same org/project at the same time (for example, two
-# browser tabs). Keyed by normalized "org|project"; value is the job id
-# currently holding the slot.
+# One apply per org/project at a time: two concurrent runs would create duplicate
+# work items (both miss each other's ado-id-map.csv rows) and overwrite reports.
 _active_apply_keys: dict[str, str] = {}
+# Finished jobs kept for polling; older ones (with their event logs) are dropped.
+MAX_FINISHED_JOBS = 20
 
 
 class ApplyInProgressError(RuntimeError):
-    """Raised when an apply is requested for an org/project already running."""
+    """An apply is already running for the same organization and project."""
 
 
 def _apply_key(request: JobCreateRequest) -> str:
     try:
-        org = normalize_ado_org_url(request.org_url)
+        org = normalize_ado_org_url(request.org_url).lower()
     except ValueError:
         org = (request.org_url or "").strip().lower()
-    project = (request.project_name or "").strip().lower()
-    return f"{org}|{project}"
+    return f"{org}|{(request.project_name or '').strip().lower()}"
 
 
 def _now() -> str:
@@ -69,7 +68,17 @@ def run_dry_run(request: DryRunRequest) -> DryRunResponse:
         step_filter=request.steps,
     )
     if (not request.steps or "catalog" in request.steps) and ir["counts"].get("catalog_rows"):
-        plan.data_checks = catalog_data_checks(ir)
+        plan.data_checks = catalog_data_checks(
+            ir,
+            area_root=request.root_area_path or request.project_name,
+            include_deprecated_deleted=request.include_deprecated_deleted,
+        )
+        retired = int(plan.data_checks.get("retiredSkipped") or 0)
+        if retired:
+            plan.notices.append(
+                f"{retired:,} Deprecated / Deleted catalog row(s) (or rows below them) will be skipped — "
+                "tick “Import Deprecated / Deleted rows” to include them."
+            )
     notice = project_name_notice(
         request.project_name,
         template_rows=int((ir.get("project") or {}).get("project_placeholders_replaced") or 0),
@@ -80,12 +89,17 @@ def run_dry_run(request: DryRunRequest) -> DryRunResponse:
     return plan
 
 
-def catalog_data_checks(ir: dict[str, Any]) -> dict[str, Any]:
-    """Offline catalog checks (no Azure DevOps calls); States are checked on live runs."""
+def catalog_data_checks(
+    ir: dict[str, Any], *, area_root: str = "", include_deprecated_deleted: bool = False
+) -> dict[str, Any]:
+    """Offline catalog checks (no Azure DevOps calls); project areas and States need a run."""
     mapping = build_mapping_from_ir(ir)
     drafts = load_catalog_drafts(ir["source"].get("catalog_source_dir"), mapping)
-    result = prevalidate_catalog_drafts(drafts, ir, mapping, sanitize=True)
-    return prevalidate_summary(result, examples=3)
+    retired = []
+    if not include_deprecated_deleted:
+        drafts, retired = split_retired_drafts(drafts)
+    result = prevalidate_catalog_drafts(drafts, ir, mapping, sanitize=True, area_root=area_root)
+    return {**prevalidate_summary(result, examples=3), "retiredSkipped": len(retired)}
 
 
 def create_job(request: JobCreateRequest) -> JobStatusResponse:
@@ -120,14 +134,15 @@ def create_job(request: JobCreateRequest) -> JobStatusResponse:
     }
     with _lock:
         if apply_key is not None:
-            existing = _active_apply_keys.get(apply_key)
-            if existing is not None:
+            running = _active_apply_keys.get(apply_key)
+            if running is not None:
                 raise ApplyInProgressError(
-                    "An apply is already running for this organization/project "
-                    f"(job {existing}). Wait for it to finish before starting another "
-                    "to avoid duplicate work items or overwritten reports."
+                    f"A run is already in progress for this organization and project (job {running}). "
+                    "Wait for it to finish, or cancel it, before starting another — two runs at once "
+                    "would create duplicate work items and overwrite each other's reports."
                 )
             _active_apply_keys[apply_key] = job_id
+        _prune_finished_jobs()
         _jobs[job_id] = record
 
     if request.mode == "dry-run":
@@ -140,12 +155,34 @@ def create_job(request: JobCreateRequest) -> JobStatusResponse:
     return get_job(job_id)
 
 
+def _prune_finished_jobs() -> None:
+    """Drop the oldest finished jobs beyond MAX_FINISHED_JOBS. Caller holds ``_lock``."""
+    finished = [
+        job_id for job_id, job in _jobs.items() if job["status"] not in {"queued", "running"}
+    ]
+    for job_id in finished[: max(0, len(finished) - MAX_FINISHED_JOBS + 1)]:
+        del _jobs[job_id]
+
+
+def _forget_pat(job_id: str) -> None:
+    with _lock:
+        job = _jobs.get(job_id)
+        if job and job["request"].pat:
+            job["request"] = job["request"].model_copy(update={"pat": None})
+
+
 def _release_apply_key(job_id: str) -> None:
     with _lock:
         job = _jobs.get(job_id)
         apply_key = job.get("apply_key") if job else None
         if apply_key is not None and _active_apply_keys.get(apply_key) == job_id:
             del _active_apply_keys[apply_key]
+
+
+def active_job_count() -> int:
+    """Jobs queued or running (reported by /health so launchers don't stop a live run)."""
+    with _lock:
+        return sum(1 for job in _jobs.values() if job["status"] in {"queued", "running"})
 
 
 def _append_event(job_id: str, event: dict[str, Any]) -> None:
@@ -236,6 +273,7 @@ def _execute_job(job_id: str) -> None:
                 run_id=job_id,
             )
         finally:
+            # Before the job reads as finished, so an immediate next run isn't refused.
             _release_apply_key(job_id)
 
         finished = _now()
@@ -246,7 +284,8 @@ def _execute_job(job_id: str) -> None:
 
         with _lock:
             job = _jobs[job_id]
-            job["apply_result"] = apply_result
+            # The job's own event list already holds every event; don't keep a second copy.
+            job["apply_result"] = apply_result.model_copy(update={"events": []})
             job["result"] = apply_result.plan
             if apply_result.ok:
                 status = "succeeded"
@@ -277,7 +316,6 @@ def _execute_job(job_id: str) -> None:
                 }
             )
     except Exception as exc:  # noqa: BLE001 - surface to job status
-        _release_apply_key(job_id)
         finished = _now()
         duration_ms = int((time.perf_counter() - job_t0) * 1000)
         with _lock:
@@ -295,12 +333,8 @@ def _execute_job(job_id: str) -> None:
                     "message": f"{exc} (after {format_duration_ms(duration_ms)})",
                 }
             )
-
-
-def active_job_count() -> int:
-    """Number of jobs currently queued or running (used by health checks)."""
-    with _lock:
-        return sum(1 for job in _jobs.values() if job["status"] in {"queued", "running"})
+    finally:
+        _forget_pat(job_id)
 
 
 def get_job(job_id: str, *, since: int = 0) -> JobStatusResponse:
@@ -312,9 +346,6 @@ def get_job(job_id: str, *, since: int = 0) -> JobStatusResponse:
         events = job["events"]
         offset = max(0, min(int(since or 0), len(events)))
         apply_result = job["apply_result"]
-        if apply_result is not None and offset:
-            # Incremental pollers already hold the events; don't resend them all.
-            apply_result = apply_result.model_copy(update={"events": []})
         return JobStatusResponse(
             id=job["id"],
             status=job["status"],

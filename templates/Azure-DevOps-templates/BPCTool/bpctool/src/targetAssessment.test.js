@@ -77,6 +77,24 @@ describe('gateExistingTargetUpdates', () => {
     expect(gated.ok).toBe(true)
     expect(gated.skippedStepIds).toEqual(['process', 'project'])
   })
+
+  it('treats a backlog-only run as changing the existing process', () => {
+    const gate = (updatePolicy, confirmProcessUpdate = false) =>
+      gateExistingTargetUpdates({
+        targetStepIds: ['backlog'],
+        assessment: baseAssessment,
+        updatePolicy,
+        confirmProcessUpdate,
+      })
+
+    expect(gate('require-confirmation').errors).toEqual([
+      'Process "Business Process Catalog" already exists. Confirm update before applying process/workbook changes.',
+    ])
+    expect(gate('require-confirmation', true).ok).toBe(true)
+    expect(gate('create-only').errors).toEqual([
+      'Process "Business Process Catalog" already exists and update policy is create-only.',
+    ])
+  })
 })
 
 describe('validateTargetNames', () => {
@@ -114,5 +132,35 @@ describe('validateTargetNames', () => {
     })
 
     expect(result.ok).toBe(true)
+  })
+
+  it('only applies the policy to targets the planned steps change', () => {
+    const assessment = assessExistingTargets({
+      processName: 'Business Process Catalog',
+      projectName: 'Contoso-BPC',
+      knownProcesses: [{ name: 'Business Process Catalog' }],
+      knownProjects: [{ name: 'Contoso-BPC' }],
+      templatePath: 'a.xlsx',
+    })
+    const validate = (targetStepIds) =>
+      validateTargetNames({
+        processName: 'Business Process Catalog',
+        projectName: 'Contoso-BPC',
+        assessment,
+        updatePolicy: 'require-confirmation',
+        targetStepIds,
+      })
+
+    expect(validate(['catalog', 'report']).ok).toBe(true)
+    expect(validate(['layout']).errors.policy).toEqual([
+      'Process "Business Process Catalog" already exists. Confirm update before the workflow can proceed.',
+    ])
+    expect(validate(['project', 'teams']).errors.policy).toEqual([
+      'Project "Contoso-BPC" already exists. Confirm update before the workflow can proceed.',
+    ])
+    expect(validate(['backlog']).errors.policy).toEqual([
+      'Process "Business Process Catalog" already exists. Confirm update before the workflow can proceed.',
+    ])
+    expect(validate(null).errors.policy).toHaveLength(2)
   })
 })

@@ -2,8 +2,10 @@
  * Vite plugin: start/stop the local FastAPI runner with the UI so users do not
  * need a second terminal (`npm run runner`).
  *
- * Always (re)starts an owned uvicorn with --reload so writer/code changes are
- * picked up. A stale process on :8787 is terminated first.
+ * (Re)starts an owned uvicorn on each launch so code changes are picked up
+ * (`npm run dev` adds --reload). An idle BPCTool runner on :8787 is replaced;
+ * one with a run in progress is reused, and an unrelated program on the port
+ * is left alone.
  */
 import { execSync, spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -58,6 +60,36 @@ function resolveUvicorn() {
   return candidates.find((candidate) => existsSync(candidate)) || null
 }
 
+/** First launch from a fresh copy (e.g. `npm start` without Start BPCTool): create the venv. */
+function runSetup(logger = console) {
+  return new Promise((resolve, reject) => {
+    const setup = spawn(process.execPath, [path.join(__dirname, 'ensure-env.mjs')], {
+      cwd: ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    const relay = (chunk) => {
+      for (const line of String(chunk).split(/\r?\n/)) {
+        if (line.trim()) logger.info?.(`[bpc-setup] ${line.trim()}`)
+      }
+    }
+    setup.stdout?.on('data', relay)
+    setup.stderr?.on('data', relay)
+    setup.on('error', reject)
+    setup.on('exit', (code) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(
+          new Error(
+            `First-launch setup failed (exit ${code}); see the [bpc-setup] lines above. ` +
+              'Python 3 must be installed and on PATH; then run: npm run setup',
+          ),
+        )
+      }
+    })
+  })
+}
+
 function waitForHealth(timeoutMs = 20000) {
   const started = Date.now()
   return new Promise((resolve, reject) => {
@@ -87,25 +119,34 @@ function waitForHealth(timeoutMs = 20000) {
   })
 }
 
-function probeHealth() {
+/**
+ * What is listening on the runner port: null (nothing), or { bpctool, activeJobs }.
+ * activeJobs is null for BPCTool runners from before /health reported it.
+ */
+export function describeListener(statusCode, body) {
+  let health
+  try {
+    health = JSON.parse(body)
+  } catch {
+    health = null
+  }
+  const bpctool =
+    statusCode === 200 && health?.status === 'ok' && 'teams_writer_mtime' in health
+  return {
+    bpctool,
+    activeJobs: bpctool && typeof health.active_jobs === 'number' ? health.active_jobs : null,
+  }
+}
+
+function probeListener() {
   return new Promise((resolve) => {
     const req = http.get(HEALTH, (res) => {
       let body = ''
+      res.setEncoding('utf8')
       res.on('data', (chunk) => {
         body += chunk
       })
-      res.on('end', () => {
-        if (res.statusCode !== 200) {
-          resolve(null)
-          return
-        }
-        try {
-          resolve(JSON.parse(body))
-        } catch {
-          // Health responded 200 but wasn't our JSON shape (unrelated service).
-          resolve({})
-        }
-      })
+      res.on('end', () => resolve(describeListener(res.statusCode, body)))
     })
     req.on('error', () => resolve(null))
     req.setTimeout(800, () => {
@@ -182,34 +223,49 @@ export function localRunnerPlugin() {
   }
 
   const start = async (logger = console) => {
-    // Never reuse a foreign/stale runner — it will serve old writer code without --reload.
-    const health = await probeHealth()
-    if (health) {
-      if (typeof health.active_jobs !== 'number' || health.active_jobs > 0) {
-        // Either a job is in-flight (don't drop it mid-apply) or the listener
-        // isn't our runner at all (no active_jobs field) — refuse instead of
-        // guessing and killing someone else's process or a live run.
-        throw new Error(
-          `Port ${PORT} is already in use by a runner with ${
-            typeof health.active_jobs === 'number'
-              ? `${health.active_jobs} active job(s)`
-              : 'an unrecognized /health response'
-          }. Stop it manually before starting the dev server.`,
-        )
-      }
-      logger.info?.(`[bpc-runner] Replacing idle existing listener on :${PORT}`)
+    const listener = await probeListener()
+    if (listener && !listener.bpctool) {
+      throw new Error(
+        `Port ${PORT} is in use by another program. Close it, then restart BPCTool.`,
+      )
+    }
+    if (listener?.activeJobs > 0) {
+      logger.warn?.(
+        `[bpc-runner] The BPCTool runner already on :${PORT} has ${listener.activeJobs} run(s) in ` +
+          'progress; using it as-is. Restart BPCTool after the run finishes to load code changes.',
+      )
+      return
+    }
+    if (listener) {
+      // A runner from an earlier session would serve that session's code. Older builds can't
+      // report runs in progress; keeping them would hide every later fix.
+      logger.info?.(
+        listener.activeJobs === null
+          ? `[bpc-runner] Replacing a BPCTool runner from an older version on :${PORT} (it can't report runs in progress)`
+          : `[bpc-runner] Replacing idle BPCTool runner on :${PORT}`,
+      )
       freeRunnerPort(logger)
       await sleep(400)
     }
 
-    const uvicorn = resolveUvicorn()
+    let uvicorn = resolveUvicorn()
+    if (!uvicorn) {
+      logger.info?.(
+        '[bpc-runner] Python runner venv not found — running first-launch setup (about a minute)...',
+      )
+      await runSetup(logger)
+      uvicorn = resolveUvicorn()
+    }
     if (!uvicorn) {
       throw new Error(
-        'Python runner venv not found. Double-click "Start BPCTool" or run: npm run setup',
+        'Python runner venv still not found after setup. Double-click "Start BPCTool" or run: npm run setup',
       )
     }
 
-    logger.info?.(`[bpc-runner] Starting ${uvicorn} on ${HOST}:${PORT} (--reload)`)
+    // --reload restarts the runner on any code change, killing a run in progress (e.g. a
+    // git pull mid-import), so only `npm run dev` uses it.
+    const reload = process.env.npm_lifecycle_event === 'dev'
+    logger.info?.(`[bpc-runner] Starting ${uvicorn} on ${HOST}:${PORT}${reload ? ' (--reload)' : ''}`)
     child = spawn(
       uvicorn,
       [
@@ -218,9 +274,7 @@ export function localRunnerPlugin() {
         HOST,
         '--port',
         String(PORT),
-        '--reload',
-        '--reload-dir',
-        'app',
+        ...(reload ? ['--reload', '--reload-dir', 'app'] : []),
       ],
       {
         cwd: RUNNER_DIR,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any
 
 from .excel_ir import _cell, _sheet_rows
@@ -57,7 +58,13 @@ BUILT_IN_FIELD_ALIASES = {
 
 
 def normalize(value: Any) -> str:
-    text = " ".join(str(value or "").strip().lower().replace("_", " ").split())
+    return _normalize_text(str(value or ""))
+
+
+# Headers and lookup keys repeat on every catalog row (~1.6M calls per Preview).
+@lru_cache(maxsize=65536)
+def _normalize_text(value: str) -> str:
+    text = " ".join(value.strip().lower().replace("_", " ").split())
     if text.endswith(" ms bpc"):
         text = text[: -len(" ms bpc")].strip()
     return text

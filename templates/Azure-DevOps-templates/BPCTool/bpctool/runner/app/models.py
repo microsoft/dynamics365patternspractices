@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+ENGINE_STEPS = ("process", "layout", "project", "teams", "backlog", "catalog", "report")
+
 
 class DryRunRequest(BaseModel):
     org_url: str = Field(min_length=3)
@@ -37,7 +39,10 @@ class DryRunRequest(BaseModel):
     )
     steps: list[str] | None = Field(
         default=None,
-        description="Optional subset of engine steps to run",
+        description=(
+            "Subset of engine steps to run (process, layout, project, teams, backlog, catalog, "
+            "report); null runs every step. An empty list or an unknown step is rejected."
+        ),
     )
     catalog_limit: int | None = Field(
         default=None,
@@ -49,6 +54,13 @@ class DryRunRequest(BaseModel):
             "Override: convert markdown-like large-text Excel "
             "content to HTML. Default false preserves markdown and sets "
             "multilineFieldsFormat=Markdown on create."
+        ),
+    )
+    include_deprecated_deleted: bool = Field(
+        default=False,
+        description=(
+            "Import catalog rows whose Catalog status is Deprecated or Deleted (and the rows "
+            "below them). Default false skips them, as the Microsoft importer does."
         ),
     )
     output_root: str | None = Field(
@@ -67,6 +79,21 @@ class DryRunRequest(BaseModel):
             "(UI Catalog workers control). Use 1 for serial."
         ),
     )
+
+    @field_validator("steps")
+    @classmethod
+    def _known_steps(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        steps = [str(step).strip().lower() for step in value]
+        if not steps:
+            raise ValueError("steps must list at least one step; use null to run every step.")
+        unknown = sorted({step for step in steps if step not in ENGINE_STEPS})
+        if unknown:
+            raise ValueError(
+                f"Unknown step(s): {', '.join(unknown)}. Valid steps: {', '.join(ENGINE_STEPS)}."
+            )
+        return [step for step in ENGINE_STEPS if step in steps]
 
     @field_validator("output_root")
     @classmethod

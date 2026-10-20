@@ -102,6 +102,55 @@ export function DataChecks({ checks }) {
   )
 }
 
+/** Rehearsal only: differences between the workbook and items an earlier import created. */
+function ChangesSection({ changes }) {
+  if (!changes) {
+    return null
+  }
+  return (
+    <div className="run-changes">
+      <h3>Changes since the last import</h3>
+      <p>{changes.summary}</p>
+      {changes.items?.length ? (
+        <ul>
+          {changes.items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+      {changes.fields?.length ? (
+        <ul className="attention-list">
+          {changes.fields.map((field) => (
+            <li key={field.field} className="attention-item info">
+              <strong>
+                {field.field}: {formatCount(field.count)} {field.count === 1 ? 'item' : 'items'}
+              </strong>
+              <p>
+                {field.teamOwned
+                  ? 'Usually edited in Azure DevOps after import.'
+                  : 'Usually edited in the workbook.'}
+              </p>
+              {field.examples?.length ? (
+                <ul className="attention-examples">
+                  {field.examples.map((example) => (
+                    <li key={example}>{example}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {changes.partialWorkbook ? (
+        <p className="field-hint">
+          Only part of the workbook was read (row limit), so items missing from the workbook are not listed.
+        </p>
+      ) : null}
+      {changes.note ? <p className="field-hint">{changes.note}</p> : null}
+    </div>
+  )
+}
+
 export default function RunResultsCard({ outcome, onRerunCatalog, onDismiss }) {
   const [showAll, setShowAll] = useState(false)
   if (!outcome) {
@@ -174,6 +223,8 @@ export default function RunResultsCard({ outcome, onRerunCatalog, onDismiss }) {
           ) : null}
         </>
       ) : null}
+
+      <ChangesSection changes={outcome.changes} />
 
       <h3>Steps</h3>
       <ul className="run-results-steps">

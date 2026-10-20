@@ -1,7 +1,8 @@
 import { useEffect, useId, useState } from 'react'
+import { runnerFetch } from './runnerApi.js'
 
 async function fetchJson(url) {
-  const response = await fetch(url)
+  const response = await runnerFetch(url)
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
     throw new Error(payload.detail || `Request failed (${response.status})`)

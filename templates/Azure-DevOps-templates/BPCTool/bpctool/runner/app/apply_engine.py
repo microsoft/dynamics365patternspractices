@@ -7,9 +7,9 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from .ado_client import AdoClient
+from .ado_client import AdoClient, AdoError, ReadOnlyAdoClient
 from .excel_ir import build_ir
-from .models import ApplyResult, DryRunRequest, DryRunResponse
+from .models import ApplyResult, DryRunRequest
 from .org_url import normalize_ado_org_url, parse_ado_org_url
 from .paths import output_root
 from .planner import STEP_ORDER, build_dry_run_plan
@@ -91,57 +91,23 @@ def run_apply(
     ir.setdefault("targets", {})["project_description"] = (
         request.project_description or ""
     ).strip()
-
     org_url = normalize_ado_org_url(request.org_url)
-
-    # Dry-run apply never calls Azure DevOps; client is only created for live apply.
+    # Writers get no client in a rehearsal; the catalog change report gets a read-only one.
     client = None if dry_run else AdoClient(org_url, pat)
-
-    # Target existence must reflect the real organization for live applies — the
-    # browser-supplied known_*_exists flags are only inventory hints and, when
-    # missing/false, must not be trusted to mean "does not exist". Trusting them
-    # here would let create-only/require-confirmation gates pass and then let
-    # apply_process/apply_project silently reuse + modify an existing target.
-    if client is not None:
-        known_process_exists = client.get_process_id(request.process_name) is not None
-        known_project_exists = client.get_project_id(request.project_name) is not None
-    else:
-        known_process_exists = request.known_process_exists
-        known_project_exists = request.known_project_exists
-
-    plan = build_dry_run_plan(
-        ir,
-        update_policy=request.update_policy,
-        confirm_process_update=request.confirm_process_update,
-        confirm_project_update=request.confirm_project_update,
-        known_process_exists=known_process_exists,
-        known_project_exists=known_project_exists,
-        step_filter=step_filter,
-    )
-    if not plan.ok:
-        return ApplyResult(
-            ok=False,
-            dry_run=dry_run,
-            plan=plan,
-            step_results={},
-            output_dir=None,
-            error="; ".join(plan.errors),
-            events=events,
-            duration_ms=0,
-            timings=[],
-        )
+    change_reader: ReadOnlyAdoClient | None = None
+    if dry_run and pat.strip():
+        try:
+            change_reader = ReadOnlyAdoClient(org_url, pat)
+        except ValueError:
+            change_reader = None
 
     output_dir = default_output_dir(org_url, request.project_name, request.output_root)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     step_results: dict[str, Any] = {}
-    process_id: str | None = None
-
-    planned = {step["id"]: step for step in plan.steps}
 
     def _write_summary(error: str | None, cancelled: bool) -> dict[str, Any] | None:
         """Every run (incl. failed/cancelled) refreshes the summary so files never disagree."""
         try:
+            output_dir.mkdir(parents=True, exist_ok=True)
             outcome = write_run_summary(
                 ir,
                 step_results=step_results,
@@ -164,6 +130,81 @@ def run_apply(
             }
         )
         return outcome
+
+    process_exists = request.known_process_exists
+    project_exists = request.known_project_exists
+    # (target, list the browser sent: None = not loaded, False = loaded without it)
+    unlisted: list[tuple[str, bool | None]] = []
+    if client:
+        # The browser's inventory is optional and can be stale; policy gates use what ADO reports.
+        try:
+            process_exists = client.get_process_id(request.process_name) is not None
+            project_exists = client.get_project_id(request.project_name) is not None
+        except AdoError as exc:
+            error = f"Could not check the process and project in Azure DevOps before the run: {exc}"
+            _emit({"type": "job-error", "message": error, "durationMs": 0})
+            return ApplyResult(
+                ok=False,
+                dry_run=dry_run,
+                plan=None,
+                step_results={},
+                output_dir=str(output_dir),
+                error=error,
+                events=events,
+                duration_ms=0,
+                timings=[],
+                run_id=run_id,
+                outcome=_write_summary(error, False),
+            )
+        if process_exists and not request.known_process_exists:
+            unlisted.append(("process", request.known_process_exists))
+        if project_exists and not request.known_project_exists:
+            unlisted.append(("project", request.known_project_exists))
+    plan = build_dry_run_plan(
+        ir,
+        update_policy=request.update_policy,
+        confirm_process_update=request.confirm_process_update,
+        confirm_project_update=request.confirm_project_update,
+        known_process_exists=process_exists,
+        known_project_exists=project_exists,
+        step_filter=step_filter,
+    )
+    if not plan.ok and unlisted:
+        plural = {"process": "processes", "project": "projects"}
+        reasons = [
+            f"Azure DevOps already has this {target}, but "
+            + (
+                f"the browser hadn't loaded its list of existing {plural[target]}."
+                if known is None
+                else f"it wasn't in the browser's list of existing {plural[target]} (the list was out of date)."
+            )
+            for target, known in unlisted
+        ]
+        buttons = " / ".join(f"Fetch existing {plural[target]}" for target, _known in unlisted)
+        plan.errors.append(
+            " ".join(reasons)
+            + f" Click {buttons} in the Connection section so the confirm "
+            + ("box appears" if len(unlisted) == 1 else "boxes appear")
+            + ", or change the existing target policy."
+        )
+    if not plan.ok:
+        return ApplyResult(
+            ok=False,
+            dry_run=dry_run,
+            plan=plan,
+            step_results={},
+            output_dir=None,
+            error="; ".join(plan.errors),
+            events=events,
+            duration_ms=0,
+            timings=[],
+        )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    process_id: str | None = None
+
+    planned = {step["id"]: step for step in plan.steps}
     selected = step_filter or STEP_ORDER
 
     _emit({"type": "apply-started", "message": f"Starting {'dry-run apply' if dry_run else 'apply'}"})
@@ -246,7 +287,13 @@ def run_apply(
                 )
             elif step_id == "backlog":
                 result = apply_backlog(
-                    client, ir, dry_run=dry_run, emit=step_emit, process_id=process_id
+                    client,
+                    ir,
+                    dry_run=dry_run,
+                    emit=step_emit,
+                    process_id=process_id,
+                    workers=int(getattr(request, "catalog_parallel_workers", 4) or 4),
+                    process_changes=(planned.get("process") or {}).get("planned_action") != "skip",
                 )
             elif step_id == "catalog":
                 result = apply_catalog(
@@ -257,12 +304,15 @@ def run_apply(
                     output_dir=output_dir,
                     limit=catalog_limit,
                     convert_markdown_to_html=bool(request.convert_markdown_to_html),
+                    include_deprecated_deleted=bool(request.include_deprecated_deleted),
                     parallel_workers=int(
                         getattr(request, "catalog_parallel_workers", 4) or 4
                     ),
                     progress=catalog_progress,
                     should_cancel=cancel_requested,
                     run_id=run_id,
+                    area_root=request.root_area_path or request.project_name,
+                    change_reader=change_reader,
                 )
             elif step_id == "report":
                 result = apply_report(
@@ -306,7 +356,6 @@ def run_apply(
                 }
             )
 
-        check_cancel()
         outcome = _write_summary(None, False)
 
         total_ms = int((time.perf_counter() - run_started) * 1000)

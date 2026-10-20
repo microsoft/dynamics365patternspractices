@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from openpyxl import load_workbook
-
-from .excel_ir import _cell, is_catalog_source_file
+from .excel_ir import _cell, catalog_sheet_rows, is_catalog_source_file
 from .mapping import TemplateMapping, normalize
 from .richtext import normalize_field_value, normalize_rich_text
 
@@ -74,6 +73,55 @@ def load_catalog_drafts(
     return sort_parent_first(drafts)
 
 
+CATALOG_STATUS = "MSBPC.catalogstatus"
+RETIRED_STATUS_WORDS = ("deprecated", "deleted")
+SKIPPED_RETIRED_CSV = "skipped-deprecated-deleted.csv"
+
+
+@dataclass
+class SkippedDraft:
+    draft: WorkItemDraft
+    reason: str
+
+
+def catalog_status(draft: WorkItemDraft) -> str:
+    return str(draft.fields.get(CATALOG_STATUS) or "").strip()
+
+
+def is_retired(draft: WorkItemDraft) -> bool:
+    status = catalog_status(draft).casefold()
+    return any(word in status for word in RETIRED_STATUS_WORDS)
+
+
+def split_retired_drafts(drafts: list[WorkItemDraft]) -> tuple[list[WorkItemDraft], list[SkippedDraft]]:
+    """Drop Deprecated / Deleted rows and every row below them (the Microsoft importer's default)."""
+    skipped: dict[str, str] = {
+        d.key: f"Catalog status is '{catalog_status(d)}'" for d in drafts if is_retired(d)
+    }
+    changed = bool(skipped)
+    while changed:
+        changed = False
+        for draft in drafts:
+            if draft.key not in skipped and draft.parent_key in skipped:
+                skipped[draft.key] = f"Parent row {draft.parent_key} is skipped"
+                changed = True
+    kept = [d for d in drafts if d.key not in skipped]
+    return kept, [SkippedDraft(d, skipped[d.key]) for d in drafts if d.key in skipped]
+
+
+def write_skipped_csv(skipped: list[SkippedDraft], path: Path) -> None:
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(
+            ["Key", "Work item type", "Title", "Catalog status", "Why skipped", "Source file", "Source row"]
+        )
+        for item in skipped:
+            d = item.draft
+            writer.writerow(
+                [d.key, d.work_item_type, d.title, catalog_status(d), item.reason, d.source_file, d.source_row]
+            )
+
+
 def _drafts_from_workbook(
     path: Path,
     mapping: TemplateMapping,
@@ -81,13 +129,7 @@ def _drafts_from_workbook(
     convert_markdown_to_html: bool = False,
     seen_keys: set[str] | None = None,
 ) -> list[WorkItemDraft]:
-    wb = load_workbook(path, read_only=True, data_only=True)
-    try:
-        sheet_name = wb.sheetnames[0]
-        ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-    finally:
-        wb.close()
+    sheet_name, rows = catalog_sheet_rows(path)
     if not rows:
         return []
 

@@ -29,6 +29,7 @@ AUTOMATIC_FIX_KINDS = (
     "state_case_normalized",
     "area_path_project_renamed",
     "project_placeholder_replaced",
+    "area_root_applied",
     "duplicate_key_renamed",
 )
 # Values that were dropped, shortened or are still questionable — worth a look.
@@ -66,6 +67,14 @@ ISSUE_TEXT: dict[str, dict[str, str]] = {
     "area_path_project_renamed": {
         "label": "Area / iteration path pointed at another project name",
         "outcome": "The first part of the path was replaced with the target project name.",
+        "fix": "Nothing to do.",
+    },
+    "area_root_applied": {
+        "label": "Area path placed under the Root area path",
+        "outcome": (
+            "Run configuration sets a Root area path below the project, so the Teams step creates "
+            "the template's area tree under it; the Area path was moved there to match."
+        ),
         "fix": "Nothing to do.",
     },
     "duplicate_key_renamed": {
@@ -169,8 +178,8 @@ def join_multi_select(parts: list[str]) -> str:
     return "; ".join(parts)
 
 
-def _area_parts(path: str) -> list[str]:
-    return [part.strip() for part in str(path).replace("/", "\\").split("\\") if part.strip()]
+def _area_parts(path: str | None) -> list[str]:
+    return [part.strip() for part in str(path or "").replace("/", "\\").split("\\") if part.strip()]
 
 
 def known_area_paths_from_ir(ir: dict[str, Any], project: str) -> dict[str, str]:
@@ -223,6 +232,7 @@ def prevalidate_catalog_drafts(
     project: str | None = None,
     extra_area_paths: list[str] | None = None,
     allowed_states: dict[str, list[str]] | None = None,
+    area_root: str = "",
 ) -> PrevalidateResult:
     """Validate drafts; optionally strip/normalize values that hard-fail create.
 
@@ -238,12 +248,38 @@ def prevalidate_catalog_drafts(
 
     Area paths are checked against the template Area paths sheet (plus
     ``extra_area_paths`` already in the project). A leading segment naming a
-    different project is rewritten to ``project``. States are checked only when
+    different project is rewritten to ``project``. With an ``area_root`` below the
+    project (Run configuration *Root area path*), template areas live under it, as
+    the Teams step creates them. States are checked only when
     ``allowed_states`` (work item type → states) is supplied, i.e. on live runs.
     """
     result = PrevalidateResult()
     project = (project or (ir.get("targets") or {}).get("project_name") or "").strip()
-    known_areas = known_area_paths_from_ir(ir, project) if project else {}
+    root_parts = _area_parts(area_root)
+    while root_parts and root_parts[0].lower() in {project.lower(), *_PROJECT_PLACEHOLDERS}:
+        root_parts = root_parts[1:]
+    # Keys and values are relative to the project; template areas sit under root_parts.
+    known_areas: dict[str, str] = {}
+    for canonical in (known_area_paths_from_ir(ir, project) if project else {}).values():
+        full = "\\".join([*root_parts, canonical])
+        known_areas[full.lower()] = full
+    for depth in range(1, len(root_parts) + 1):
+        node = "\\".join(root_parts[:depth])
+        known_areas.setdefault(node.lower(), node)
+    root_prefix = "\\".join(root_parts).lower()
+    root_label = "\\".join([project, *root_parts])
+
+    def find_area(relative: list[str]) -> tuple[str | None, bool]:
+        """(canonical path under the project, whether the root area path was added)."""
+        joined = "\\".join(relative).lower()
+        if joined in known_areas:
+            return known_areas[joined], False
+        if root_parts:
+            rooted = known_areas.get(f"{root_prefix}\\{joined}")
+            if rooted is not None:
+                return rooted, True
+        return None, False
+
     for extra in extra_area_paths or []:
         parts = _area_parts(extra)
         if parts and parts[0].lower() == project.lower():
@@ -299,6 +335,14 @@ def prevalidate_catalog_drafts(
             "System.Title": "Title",
             TRACKING_KEY_REF: "Tracking key (ado-id-map.csv)",
         }.get(ref, ref)
+
+    required_msbpc = [
+        (fd, normalize(fd.label))
+        for fd in mapping.fields_by_ref.values()
+        if _is_required(fd.required)
+        and fd.reference_name
+        and fd.reference_name.lower().startswith("msbpc.")
+    ]
 
     for draft in drafts:
         wit_norm = normalize(draft.work_item_type)
@@ -367,11 +411,12 @@ def prevalidate_catalog_drafts(
             elif project and known_areas:
                 parts = _area_parts(area_text)
                 renamed = False
+                rooted = False
                 if parts and parts[0].lower() in {project.lower(), *_PROJECT_PLACEHOLDERS}:
                     relative = parts[1:]
-                elif "\\".join(parts).lower() in known_areas:
+                elif find_area(parts)[0] is not None:
                     relative = parts
-                elif len(parts) > 1 and "\\".join(parts[1:]).lower() in known_areas:
+                elif len(parts) > 1 and find_area(parts[1:])[0] is not None:
                     relative = parts[1:]
                     renamed = True
                 else:
@@ -379,7 +424,7 @@ def prevalidate_catalog_drafts(
                 if relative is None:
                     canonical_rel = None
                 elif relative:
-                    canonical_rel = known_areas.get("\\".join(relative).lower())
+                    canonical_rel, rooted = find_area(relative)
                 else:
                     canonical_rel = ""
                 if canonical_rel is None:
@@ -401,7 +446,17 @@ def prevalidate_catalog_drafts(
                             area_text,
                             "area_path_project_renamed",
                             "normalize",
-                            f"'{parts[0]}' → '{project}'",
+                            f"'{parts[0]}' → '{project}'"
+                            + (f", placed under Root area path '{root_label}'" if rooted else ""),
+                            target,
+                        )
+                    elif rooted:
+                        add(
+                            "System.AreaPath",
+                            area_text,
+                            "area_root_applied",
+                            "normalize",
+                            f"Placed under Root area path '{root_label}'",
                             target,
                         )
                     if sanitize and target != area_text:
@@ -585,14 +640,10 @@ def prevalidate_catalog_drafts(
         # only when WIT matrix marks the field applicable.
         applicable = mapping.applicable_fields_by_wit.get(wit_norm)
         if applicable:
-            for fd in mapping.fields_by_ref.values():
-                if not _is_required(fd.required):
-                    continue
-                if normalize(fd.label) not in applicable:
+            for fd, label_key in required_msbpc:
+                if label_key not in applicable:
                     continue
                 ref = fd.reference_name
-                if not ref or not ref.lower().startswith("msbpc."):
-                    continue
                 if draft.fields.get(ref) not in (None, ""):
                     continue
                 default = _template_default(fd) if sanitize else None

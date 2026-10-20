@@ -188,6 +188,36 @@ def _counts_text(counts: dict[str, Any]) -> str:
     )
 
 
+def _changes_html(changes: dict[str, Any] | None) -> str:
+    if not changes:
+        return ""
+    parts = [f"<h2>Changes since the last import</h2><p>{_e(changes['summary'])}</p>"]
+    if changes.get("items"):
+        parts.append("<ul>" + "".join(f"<li>{_e(item)}</li>" for item in changes["items"]) + "</ul>")
+    if changes.get("fields"):
+        rows = "".join(
+            f"""<tr><td>{_e(field['field'])}</td><td class="num">{int(field['count']):,}</td>
+<td>{'Azure DevOps — often edited after import' if field['teamOwned'] else 'Workbook'}</td>
+<td>{'<br/>'.join(_e(ex) for ex in field['examples'])}</td></tr>"""
+            for field in changes["fields"]
+        )
+        parts.append(
+            "<table><thead><tr><th>Field</th><th>Items</th><th>Usually edited in</th>"
+            "<th>Examples (Azure DevOps → workbook)</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table>"
+        )
+    if changes.get("partialWorkbook"):
+        parts.append(
+            "<p class=\"earlier\">The rehearsal read only part of the workbook (row limit), "
+            "so items missing from the workbook are not listed.</p>"
+        )
+    if changes.get("note"):
+        parts.append(f"<p class=\"earlier\">{_e(changes['note'])}</p>")
+    if changes.get("file"):
+        parts.append(f'<a class="file" href="{_e(changes["file"])}">Open {_e(changes["file"])}</a>')
+    return "".join(parts)
+
+
 def render_html(summary: dict[str, Any]) -> str:
     outcome = summary["outcome"]
     banner = _BANNER_CLASS.get(outcome["status"], "info")
@@ -230,6 +260,8 @@ def render_html(summary: dict[str, Any]) -> str:
             "<details><summary>Fixed automatically (no action needed)</summary>"
             f"<ul>{rows}</ul><p>Full list: <a href=\"import-prevalidate.csv\">import-prevalidate.csv</a></p></details>"
         )
+
+    changes_html = _changes_html(outcome.get("changes"))
 
     file_rows = "".join(
         f"""<tr><td><a href="{_e(f['name'])}">{_e(f['label'])}</a></td><td>{_e(f['description'])}</td>
@@ -293,6 +325,7 @@ def render_html(summary: dict[str, Any]) -> str:
   {notices_html}
   {attention_html}
   {automatic_html}
+  {changes_html}
   <h2>Steps</h2>
   <table>
     <thead><tr><th></th><th>Step</th><th>Result</th><th>Time</th></tr></thead>

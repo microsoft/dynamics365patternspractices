@@ -17,6 +17,12 @@
   margin-bottom: 8px;
 }
 
+.header-steps {
+  margin: 8px 0 0;
+  padding-left: 22px;
+  line-height: 1.6;
+}
+
 .mode-banner {
   margin: 10px 0 0;
   font-size: 14px;
@@ -826,6 +832,16 @@ select:disabled {
 
 .attention-item.error {
   border-left-color: #dc2626;
+}
+
+.attention-item.info {
+  border-left-color: #2563eb;
+}
+
+.run-changes > p,
+.run-changes > ul:not(.attention-list) {
+  margin: 4px 14px;
+  font-size: 14px;
 }
 
 .attention-item strong {

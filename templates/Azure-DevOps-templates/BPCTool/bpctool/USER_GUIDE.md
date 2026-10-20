@@ -18,7 +18,7 @@ BPCTool configures an Azure DevOps organization for the Microsoft Business Proce
 4. Upsert **teams** and **area paths** (including multi-path team assignments)
 5. Configure **backlog levels**, **WIT→backlog mapping**, **iteration paths**, and **team iteration settings**
 6. **Import catalog** content — every matching workbook in the catalog folder (Business Process Catalog, Deliverables, Objectives, SbD Delivery Plan, etc.), not only the BPC file
-7. Emit an **HTML/JSON summary report** — also written automatically at the end of every run, and shown in the UI as a **results card**
+7. Emit an **HTML/JSON summary report** — also written automatically at the end of every run, and shown in the UI as a **results card**. A rehearsal against an existing project also reports what changed between the workbook and the work items already in Azure DevOps
 
 Excel remains the authoring format. A local FastAPI runner parses workbooks into an intermediate representation (IR), builds a plan, and applies changes through Azure DevOps REST APIs.
 
@@ -44,7 +44,7 @@ Excel remains the authoring format. A local FastAPI runner parses workbooks into
 | Item | Notes |
 |------|-------|
 | Organization URL | `https://dev.azure.com/{org}`, `https://{org}.visualstudio.com`, or bare `{org}` (normalized to `https://dev.azure.com/{org}`) |
-| PAT | Personal Access Token with scopes sufficient to manage processes, projects, work items, and teams. Typically: **Work Items (Read & Write)**, **Project and Team (Read & Write)**, **Identity (Read)**. Process customization may require organization-level permissions. To **install** the Multivalue extension from the UI, the account/PAT must be able to manage organization extensions (often org owner/admin). |
+| PAT | Personal Access Token with scopes sufficient to manage processes, projects, work items, and teams. Typically: **Work Items (Read & Write)**, **Project and Team (Read & Write)**, **Identity (Read)**. Process customization may require organization-level permissions. To **install** the Multivalue extension from the UI, the account/PAT must be able to manage organization extensions (often org owner/admin). A **Rehearsal only** run needs only read access (Project and Team Read, Work Items Read) for its change report. |
 | Permissions | Ability to create inherited processes and projects in the target org |
 | **Multivalue extension (required)** | [Multivalue control (Microsoft DevLabs)](https://marketplace.visualstudio.com/items?itemName=ms-devlabs.vsts-extensions-multivalue-control) (`ms-devlabs.vsts-extensions-multivalue-control`) **must** be installed and enabled on the organization before process template, page layout, and project setup. Connection auto-checks; Run prompts to install if missing. Without it, those steps are blocked. |
 
@@ -143,9 +143,9 @@ npm start        # UI + auto-started runner; opens browser
 | How | What happens |
 |-----|----------------|
 | Double-click `Start BPCTool.command` / `.bat` | Setup if needed → start UI → auto-start runner → open browser |
-| `npm start` | Same as above (without the setup wrapper) |
+| `npm start` | Same as above; if `.venv` is missing (fresh clone or copy) it runs the Python part of setup first, logged as `[bpc-setup]` lines |
 
-The Vite process starts the FastAPI runner on `127.0.0.1:8787` via `scripts/localRunnerPlugin.js` (with `--reload`, and it replaces a stale process already bound to `8787`). Closing the start window / stopping Vite also stops the runner it started.
+The Vite process starts the FastAPI runner on `127.0.0.1:8787` via `scripts/localRunnerPlugin.js`. It does not watch for code changes, so pulling new code during a run can't restart the runner and cut the run off; relaunch to load the new code (developers: `npm run dev` adds `--reload`). An idle BPCTool runner already on `8787` (e.g. left over from an earlier session) is replaced; one with a run in progress is reused as-is so the run isn't cut off — relaunch after it finishes to load code changes. If a different program owns `8787`, the launcher leaves it alone and logs *Port 8787 is in use by another program*. Closing the start window / stopping Vite also stops the runner it started.
 
 Confirm health (optional):
 
@@ -169,10 +169,10 @@ Two controls never change Azure DevOps; they differ in how far they go:
 | | **Preview plan** button | **Rehearsal only** checkbox + **Rehearse selected flow** | **Run selected flow (live)** (checkbox off) |
 |---|---|---|---|
 | What runs | Reads the workbooks once and builds the plan; no step code runs | Every selected step runs and logs what it *would* do (`[dry-run] …` lines) | Every selected step runs for real |
-| Azure DevOps | Not contacted | Not contacted (the runner creates no ADO client) | Created / updated |
-| Output | On-screen plan: step order, counts, warnings, errors | Event log + results card + preview files in the output folder (`rehearsal-summary.html`, `import-prevalidate.csv`, `import-preview.csv`) | Work items, process, project, … + all artifacts incl. `ado-id-map.csv` |
+| Azure DevOps | Not contacted | **Read only**, Catalog Import step only, through a client that refuses every write. It looks up the project; if it exists, it reads the project's area paths, states, and existing catalog work items for the change report. Other steps don't contact Azure DevOps | Created / updated |
+| Output | On-screen plan: step order, counts, warnings, errors | Event log + results card + preview files in the output folder (`rehearsal-summary.html`, `import-prevalidate.csv`, `import-preview.csv`, `import-changes.csv`) | Work items, process, project, … + all artifacts incl. `ado-id-map.csv` |
 | Workflow cards | Unchanged | Shown **Skipped**; never marked complete | Marked **Completed** / **Failed** |
-| Use it to | Check inputs — paths, names, release folders, mixed-release warnings | Check catalog cleanup (picklist fixes, stripped area paths, defaults) before a long import | Apply |
+| Use it to | Check inputs — paths, names, release folders, mixed-release warnings | Check catalog cleanup (picklist fixes, stripped area paths, defaults) before a long import, and see what changed since the last import | Apply |
 
 The checkbox only affects the run button — **Preview plan ignores it**. The run button label and the coloured note under the buttons always show which one you are about to do: **Run selected flow (live)** with a red "Live run: changes Azure DevOps org … · process … · project …" note, or **Rehearse selected flow** with an amber "Rehearsal" note.
 
@@ -194,12 +194,7 @@ Double-click **Start BPCTool** and wait for the browser to open.
 4. Wait until the status chip shows **Ready**
 5. Confirm **Multivalue: installed** (required). If **missing**, use **Install Multivalue extension** or install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-devlabs.vsts-extensions-multivalue-control) as an org admin, then **Check** again. Process / layout / project runs are blocked until it is installed and enabled.
 
-Optional but recommended:
-
-- **Fetch existing projects**
-- **Fetch existing processes**
-
-These populate inventory used for create-vs-update policy.
+Existing projects and processes load automatically once the org URL and PAT are filled in (outside Simulate mode), and again after each live run, so a project the run created shows as existing. They drive the create-vs-update policy and the confirm boxes in section 2. The connection status shows how many were found, or why they couldn't be loaded (e.g. the PAT lacks read access to projects or processes). **Fetch existing projects** / **Fetch existing processes** refresh them by hand.
 
 ### Step 2 — Process & project names
 
@@ -213,10 +208,14 @@ These populate inventory used for create-vs-update policy.
 |--------|----------|
 | Require confirmation before update | If process/project already exists, you must check confirm boxes |
 | Always update existing targets | Proceed with update/reuse |
-| Skip steps for existing targets | Skip process/project phases when targets exist |
+| Skip steps for existing targets | Skip process/project phases when targets exist. With an existing process and a new project, Backlog still sets up iterations and team settings but leaves the process's backlog levels and type assignments as they are |
 | Create only (fail if exists) | Fail planning/apply if targets already exist |
 
 6. If policy requires it and the name matches inventory, check **Confirm process update** / **Confirm project update**
+
+A live run always checks Azure DevOps itself for the process and project before applying the policy, so an unfetched or stale list can't let **Create only** or **Require confirmation** through. Preview plan and Rehearsal only don't check the targets in Azure DevOps: without a fetched list they treat them as new and say so in the plan warnings.
+
+When the **project already exists**, Project Creation also checks that it uses the selected process. If it was created from a different process (e.g. plain Agile), the run stops: layouts, backlogs and catalog work item types would not apply to it. Use another project name, or change the project's process in Azure DevOps (*Organization settings → Boards → Process*) and re-run.
 
 ### Step 3 — Workflow selection
 
@@ -241,9 +240,10 @@ These populate inventory used for create-vs-update policy.
    - **Catalog source folder** — absolute path to the folder of catalog workbooks for the same release (BPC, Deliverables, Objectives, SbD, …)
    - **Workbook version / revision label** — the release label, e.g. `2026-Q3` (blank by default; used in fingerprinting)
 4. Set options:
-   - **Rehearsal only — run steps without changing Azure DevOps** — leave **unchecked** for the live run (default). Tick it only to rehearse; the run button then reads **Rehearse selected flow** and the catalog step still writes `import-preview.csv` and `import-prevalidate.csv` / `.json`, and the run writes `rehearsal-summary.html`.
+   - **Rehearsal only — run steps without changing Azure DevOps** — leave **unchecked** for the live run (default). Tick it only to rehearse; the run button then reads **Rehearse selected flow** and the catalog step still writes `import-preview.csv` and `import-prevalidate.csv` / `.json`, plus `import-changes.csv` / `.json` when the project already exists, and the run writes `rehearsal-summary.html`.
    - **Convert Markdown large-text fields to HTML** — leave **unchecked** unless you want HTML conversion (see §8)
-5. **Root area path** defaults to the **project name** (project root); override only if needed. Area path *children* still come from the Excel Area paths sheet.
+   - **Import Deprecated / Deleted rows** — leave **unchecked** (default) to skip catalog rows whose Catalog status is Deprecated or Deleted, and the rows below them (see §9)
+5. **Root area path** defaults to the **project name** (project root); override only if needed. Area path *children* still come from the Excel Area paths sheet. An override below the project (e.g. `Contoso-BPC\Imported`) makes Teams & areas create that node and the whole template area tree under it, with team area assignments to match; Catalog Import moves catalog Area Paths there too (listed as *Area path placed under the Root area path* in the data checks). Areas that already exist elsewhere in the project are kept as they are.
 6. **Run output folder** — where run results go (`<folder>/<org>_<project>/`). Leave empty for the default; keep the same folder for every run against a project.
 
 **"Your Project Name Here" placeholder:** wherever a workbook's area or iteration path contains `Your Project Name Here` (any casing, optionally in `<…>` / `[…]`), BPCTool substitutes the **Project name** from the form — in the template's Area paths, Iteration paths and Teams *Backlog iteration*, and in catalog rows' **Area Path** / **Iteration Path**. Every substitution is reported in a highlighted line — *Project name applied: 'Your Project Name Here' → '<project>' in N template area/iteration rows and M catalog Area/Iteration Path values* — in Preview plan, the run log, the results card, and the HTML report; each catalog value is also a row in `import-prevalidate.csv` (value in spreadsheet → value used).
@@ -271,13 +271,13 @@ These populate inventory used for create-vs-update policy.
 6. At the end of the run, the log includes **Run timing** with per-step durations and a **total**
 7. When it finishes (success or not), the **results card** under the log shows the headline, what needs attention, and buttons for the report and CSVs; files are under `<Run output folder>/<org>_<project>/` (§11)
 
-![Results card after a rehearsal: headline, project-name line, report and data-check buttons, what needs attention](./docs/images/ui-results-card.png)
+![Results card after a rehearsal against an existing project: headline, report and CSV buttons, what needs attention, and Changes since the last import](./docs/images/ui-results-card.png)
 
-If **Rehearsal only** is ticked, steps finish quickly with `[dry-run]` log lines and **nothing is created in the org**. That run also does **not** mark steps complete for dependency tracking.
+If **Rehearsal only** is ticked, steps finish quickly with `[dry-run]` log lines and **nothing is created or changed in the org** (Catalog Import may read the project; see below). That run also does **not** mark steps complete for dependency tracking.
 
 ### Optional — Rehearsal
 
-Tick **Rehearsal only**, click **Rehearse selected flow**, and inspect the results card and preview files (`rehearsal-summary.html`, `import-prevalidate.csv`, `import-preview.csv`) without changing Azure DevOps. Untick it before the live run.
+Tick **Rehearsal only**, click **Rehearse selected flow**, and inspect the results card and preview files (`rehearsal-summary.html`, `import-prevalidate.csv`, `import-preview.csv`) without changing Azure DevOps. If the project already exists, the rehearsal also reads its catalog work items and reports what differs from the workbook (*Changes since the last import*, `import-changes.csv`; see §11). Untick it before the live run.
 
 **Cancel:** in Runner mode, **Cancel run** asks the runner to stop the job (`POST /jobs/{id}/cancel`); the button shows **Cancelling…** until it stops. The runner stops at the next safe point: between steps, at the next progress message inside Process/Layout/Project/Teams/Backlog, and in Catalog Import after in-flight creates finish (they are still written to `ado-id-map.csv`). Backfill is skipped; the job ends as **cancelled**. Steps that finished before the cancel are marked complete; Catalog is not, so run it again to resume. In Simulate/API modes, Cancel stops the client-side flow.
 
@@ -293,13 +293,13 @@ Tick **Rehearsal only**, click **Rehearse selected flow**, and inspect the resul
 |---------|---------|
 | Org URL | Accepts `dev.azure.com/{org}`, `{org}.visualstudio.com`, or bare org; normalized for API calls; session-only |
 | PAT | Full-width field; Basic auth `:${pat}` for ADO and runner apply; Show/Hide; session-only |
-| Fetch projects / processes | Optional inventory for update policy |
+| Fetch projects / processes | Refresh the existing-target lists (loaded automatically on connect and after live runs) |
 | Multivalue extension | **Required.** Auto-checks DevLabs Multivalue control on the org; Check / Install controls. Missing or disabled blocks process / layout / project |
 | Execution mode | Simulate / API / Runner (see §7) |
 
 ### 2. Process & project names
 
-Free-text names for create or update, optional **project description**, and update policy. Existing targets are assessed when inventory was fetched or names match known lists.
+Free-text names for create or update, optional **project description**, and update policy. Existing targets are assessed against the lists loaded from the connection. The confirm rules only apply to steps that change that target: the process for Process Template, Page Layout and Backlog (backlog levels belong to the process, so every project on it sees the change), the project for Project Creation — so a Teams, Backlog or Catalog re-run isn't blocked by an existing project, but a Backlog re-run against an existing process needs **Confirm process update** (and is refused under *create-only*).
 
 ### 3. Workflow selection
 
@@ -307,7 +307,7 @@ Four run mode radios (Selected step only, Dependency-aware, Run from selected st
 
 ### 4. Run configuration
 
-Template/catalog paths (Browse…), **Run output folder** (Browse… / Use default; remembered in the browser), workbook version, **Catalog workers** (labelled **Threads** in Simulate/API), root area path, **Rehearsal only**, markdown conversion, **Preview plan** (plan preview with data checks), **Run selected flow (live)** / **Rehearse selected flow**, live/rehearsal note, catalog progress bar, **results card**, event log. Retry count and layout/backlog worksheet names only appear in Simulate/API modes; the runner reads sheet names from the template and handles retries itself.
+Template/catalog paths (Browse…), **Run output folder** (Browse… / Use default; remembered in the browser), workbook version, **Catalog workers** (labelled **Threads** in Simulate/API; also how many teams Backlog configures at once), root area path, **Rehearsal only**, markdown conversion, **Import Deprecated / Deleted rows**, **Preview plan** (plan preview with data checks), **Run selected flow (live)** / **Rehearse selected flow**, live/rehearsal note, catalog progress bar, **results card**, event log. Retry count and layout/backlog worksheet names only appear in Simulate/API modes; the runner reads sheet names from the template and handles retries itself.
 
 The layout uses a wide content shell and full-width rows for long values (paths, PAT, org URL) so fields are not clipped beside unused white space.
 
@@ -373,9 +373,9 @@ Project (and later project-phase steps) cannot start until process + layout succ
 |------|----|--------------|
 | 1. Process Template | `process` | Create/update inherited process; WITs; picklists; custom fields; multi-select → suggested lists; disable Excel-disabled WITs |
 | 2. Page Layout | `layout` | Add fields to WITs; pages/groups/controls; `HtmlFieldControl` for HTML; DevLabs multivalue control for Multi-select; `H` fields added without a visible control (skips disabled WITs) |
-| 3. Project Creation | `project` | Create project bound to process (or reuse existing); set/update optional description |
-| 4. Teams & Areas | `teams` | Create teams; area path tree; aggregate team area assignments (`includeChildren: false` unless Excel says otherwise) |
-| 5. Backlog Config | `backlog` | Rename/create backlog levels; assign WITs; set defaults; iteration paths; team backlog/iteration settings |
+| 3. Project Creation | `project` | Create project bound to process (or reuse existing); set/update optional description (a failed update is a warning; the run continues) |
+| 4. Teams & Areas | `teams` | Create teams; area path tree; aggregate team area assignments (`includeChildren` from the Teams sheet *Include sub areas*) |
+| 5. Backlog Config | `backlog` | Rename/create backlog levels; assign WITs; set defaults; iteration paths; team backlog/iteration settings (teams in parallel, **Catalog workers**) |
 | 6. Catalog Import | `catalog` | Import **all** matching catalog workbooks; Title 1..N parents; prevalidate; parallel create + resume + parent-link backfill |
 | 7. Report | `report` | Write HTML/JSON summary under the run output folder (the summary is also written automatically at the end of every run) |
 
@@ -386,7 +386,7 @@ Project (and later project-phase steps) cannot start until process + layout succ
 | **Work item types** | WIT definitions; `Custom work item type = Disabled` for Epic / Feature / User story; `Backlog name` maps enabled WITs to levels; field-label grid: **`X`** = field on the WIT and shown on the form; **`H`** = field on the WIT but **hidden** from the form (no control placed; an existing control, e.g. Completed Work on Task, is set hidden); blank = not on the WIT. The reference Script 2 ignored `H`; changing a cell from `H` to `X` shows the control again on the next Layout run. A **State** grid column (if present) means the State *field* applies to that WIT — it is **not** a list of allowed `System.State` values |
 | **Backlogs** | Level names, type, color, default WIT, **Rename from** (`Epic`, `Feature`, `(new)`, `(rename)`) |
 | **Fields** / **Picklists** | Custom fields and lists; **Multi-select field = Yes** → suggested picklist + multivalue UI (Application family, Products, Industries, …) |
-| **Area paths** / **Teams** | Hierarchy + team mappings (L1–L4 hierarchy columns; project column skipped) |
+| **Area paths** / **Teams** | Hierarchy + team mappings (L1–L4 hierarchy columns; project column skipped). Teams **Include sub areas** = Yes → the team's areas include their child areas (set by Teams & areas, so a Teams-only re-run keeps it) |
 | **Iteration paths** | Iteration tree created and assigned to teams in the backlog step |
 
 ### Catalog Import (step 6) in detail
@@ -398,16 +398,17 @@ Catalog Import is **one step for all catalog content** in the configured folder�
 | **Sources** | Every `.xlsx` matching name hints (Business Process Catalog, Deliverables, Objectives, Delivery Plan, SbD); template/guideline names excluded |
 | **Hierarchy** | Parent/child links follow **Title 1..N** columns (same model as [ADO CSV / BPC import guidance](https://learn.microsoft.com/dynamics365/guidance/business-processes/about-import-catalog-devops)). Title 1 = root; Title 2 child of prior Title 1; etc. |
 | **Keys** | Process sequence ID / Microsoft ID are stored on the work item and used as external keys for linking lookups; they do **not** derive the parent outline |
+| **Deprecated / Deleted rows** | Skipped by default, as the Microsoft importer does: a row whose **Catalog status** contains *Deprecated* or *Deleted* (e.g. `65 - Deprecated (final)`, 700 rows in the July workbooks) and every row below it in the Title outline. Listed in `skipped-deprecated-deleted.csv`, counted under *Fixed automatically* and in Preview plan. Tick **Import Deprecated / Deleted rows** (API `include_deprecated_deleted`) to import them. Items an earlier run already created are left as they are; a rehearsal lists them as *Deprecated or deleted in the workbook* |
 | **Prevalidate (data checks)** | Before create (and on Rehearsal only runs; Preview plan shows the same checks): normalize multi-select tokens; **case-insensitive** picklist align to template casing; replace `Your Project Name Here` in Area / Iteration Path with the project name; rewrite the Area Path and Iteration Path project prefix to the target project; strip area paths that are not in the project, States not allowed for the type, and invalid single picklist values; shorten text over 255 characters; apply Fields-sheet **Default value** when a required applicable field is empty → `import-prevalidate.csv` / `.json` (see §15 *Catalog fails on Application family / Products / picklists*) |
 | **Description** | Spreadsheet Description mapped to `System.Description` only when non-empty; empty → field omitted (no synthetic “Imported from … row N”) |
-| **Create-only fields** | Successful creates are not field-updated on re-run. Keys already in `ado-id-map.csv` are **skipped** (resume). Delete the map (or use a clean project) to recreate |
+| **Create-only fields** | Successful creates are not field-updated on re-run. Keys already in `ado-id-map.csv` are **skipped** (resume). Delete the map (or use a clean project) to recreate. A **Rehearsal only** run lists what differs between the workbook and the existing items (`import-changes.csv`, §11) |
 | **Parallelism** | UI **Catalog workers** (1–16, default 4) → `catalog_parallel_workers`. Parent-aware: a child is queued as soon as its parent is created. Start with 2–8 to limit ATCPU/429. Each worker reuses a keep-alive HTTPS connection |
 | **Parent-link backfill** | After create, ensures Hierarchy-Reverse for pairs in the id map. Rows whose `ado-id-map.csv` `ParentId` already matches were linked in the create call and are reported `already_linked` without another request; the rest are checked in parallel with the same worker count. Writes `backfill-links-report.csv` (`linked` / `already_linked` / `conflict_existing_parent` / `failed`) |
 | **Create retries** | Creates are retried only when ADO rejected them (429/503). If the connection drops after a create was sent, the runner looks the item up (type + title + `MSBPC.microsoftid`): one match is adopted into the id map, no match is retried once, several matches are reported as possible duplicates in `import-failures.csv` / `.json` |
 | **Log stats** | `created` / `skipped` / `linked` / `missing parent` / `failed` / `cancelled` / `reconciled` / worker count |
 | **Smoke tests** | API `catalog_limit` or a **Rehearsal only** run to avoid a full ~15k-row live import |
 
-**System.State:** Allowed values come from each work item type’s process state model in Azure DevOps (not the template Picklists sheet). Catalog rows often send `New`; that is valid for many Agile-style types but **invalid for Test Case** (prevalidate strips it). Live runs read each type's states from Azure DevOps and strip any other value it would reject (e.g. `Deprecated`); Preview plan and Rehearsal only can check only the Test Case rule. **Business approval state** is a separate custom picklist.
+**System.State:** Allowed values come from each work item type’s process state model in Azure DevOps (not the template Picklists sheet). Catalog rows often send `New`; that is valid for many Agile-style types but **invalid for Test Case** (prevalidate strips it). Live runs read each type's states from Azure DevOps and strip any other value it would reject (e.g. `Deprecated`); so do rehearsals when the project already exists. Otherwise Preview plan and Rehearsal only can check only the Test Case rule. **Business approval state** is a separate custom picklist.
 
 **Example Backlogs sheet (test fixture):**
 
@@ -439,9 +440,9 @@ If an older apply created custom **Levels** / **Lowest** while leaving system **
 | Step | On subsequent run |
 |------|-------------------|
 | **Process / layout** | Adds missing WITs/fields/controls; limited field metadata PATCH; not a full process rewrite |
-| **Project** | Reuses existing; updates description when the UI field is non-empty |
+| **Project** | Reuses existing; updates description when the UI field is non-empty. Stops with an error if the existing project was created from a different process |
 | **Teams / backlog** | Upsert/heal areas, behaviors, iterations, assignments |
-| **Catalog** | **Create-only fields** — keys in `ado-id-map.csv` are skipped (no WIP field refresh). New keys create; parent-link backfill can still fix missing Hierarchy-Reverse |
+| **Catalog** | **Create-only fields** — keys in `ado-id-map.csv` are skipped (no WIP field refresh). New keys create; parent-link backfill can still fix missing Hierarchy-Reverse. Rehearse first to see which existing items differ from the new workbook (`import-changes.csv`) |
 | **Report** | Regenerates local HTML/JSON |
 
 ### Moving to a new quarterly release
@@ -450,7 +451,8 @@ If an older apply created custom **Levels** / **Lowest** while leaving system **
 2. Click **Load runner defaults** — with `YYYY-Qn` folder names it selects the new folder and template and pre-fills **Workbook version** (or set the paths with Browse…).
 3. Confirm **Workbook version** is the new release label (e.g. `2026-Q4`); the fingerprint change flags the spreadsheet delta. Keep the same output folder — the existing `ado-id-map.csv` is what makes the new release skip items already created.
 4. Run **Preview plan** and read warnings/errors before any live apply — sheet or column changes in a new release show up here first.
-5. Apply. Structure steps add what is new; catalog creates only keys not already in `ado-id-map.csv`. Changed field values on existing catalog rows, and fields/controls dropped from the template, are **not** propagated (see table above).
+5. Optionally run a **Rehearsal only** with Catalog Import: *Changes since the last import* lists the existing items whose values differ in the new release, and the new rows a live run would create.
+6. Apply. Structure steps add what is new; catalog creates only keys not already in `ado-id-map.csv`. Changed field values on existing catalog rows, and fields/controls dropped from the template, are **not** propagated (see table above) — use `import-changes.csv` to update those items by hand if needed.
 
 ---
 
@@ -467,10 +469,38 @@ Root: `<Run output folder>/<org>_<project>/` — the folder chosen in Run config
 | `import-prevalidate.csv` | Catalog step (including Rehearsal only) — every value changed or removed before import, **Needs review?** rows first, with source file + row, value in spreadsheet, value used, how to fix |
 | `import-prevalidate.json` | Same checks as counts + examples, split into `automaticFixes` and `needsReview` |
 | `import-preview.csv` | Catalog step (including Rehearsal only runs) — sample drafts |
+| `skipped-deprecated-deleted.csv` | Catalog step, when Deprecated / Deleted rows were skipped — key, type, title, Catalog status, why skipped (own status or parent row), source file + row. Removed when nothing was skipped |
+| `import-changes.csv` | Rehearsal only, when the project exists — every difference between the workbook and the work items already in the project (see *Changes since the last import* below). Removed by a later rehearsal that can't compare, so it never shows stale results |
+| `import-changes.json` | Same comparison as counts: how rows were matched (`matchedBy`), items compared and changed, counts by kind, top fields with examples |
 | `ado-id-map.csv` | Live catalog import — `Key`, `WorkItemId`, …; **appended** across runs for resume |
 | `backfill-links-report.csv` | Parent-link backfill statuses after catalog create |
 
 Every file written by a run carries the same run id (`runId`, the runner job id) and `generatedAt`, so you can tell whether the summary and the failures file came from the same run.
+
+**Changes since the last import (rehearsal).** A rehearsal's Catalog Import step first looks up the project in Azure DevOps (read-only). What it compares depends on what it finds:
+
+| Project in Azure DevOps | `ado-id-map.csv` in the output folder | What the rehearsal does |
+|---|---|---|
+| Exists | Yes | Reads the items listed in the ID map and compares them with their workbook rows |
+| Exists | No | Finds the project's work items that have a **Microsoft ID**, for the work item types in the workbook, and matches each workbook row by type + Microsoft ID (+ Process sequence ID when several share a Microsoft ID; Microsoft ID alone if the sequence ID was edited). Matched rows are flagged as *would be created again*, because a live Catalog Import without the ID map creates every row. This also appears under **What needs attention** |
+| Doesn't exist | No | Nothing to compare — the section says so |
+| Doesn't exist | Yes | Reports that the project was deleted or renamed since the earlier import |
+
+When the project exists, the data checks also use its area paths and states, as a live run does. Items are read 200 per request, and the comparison uses the values after the data checks, so it compares what a live run would send. The results card and `rehearsal-summary.html` show a *Changes since the last import* section: how many items differ, the fields that differ most (with examples, Azure DevOps value → workbook value), and whether each field is usually edited in the workbook or in Azure DevOps (State, Reason, Assigned To, Area Path, Iteration Path, Tags). `import-changes.csv` lists every difference, one row per field, using these change types:
+
+| Change | Meaning |
+|--------|---------|
+| Already in Azure DevOps, not in ado-id-map.csv — a live run would create a duplicate | Only when matched by Microsoft ID. Fix: use the output folder that holds the earlier `ado-id-map.csv` |
+| Several work items in Azure DevOps match this row | Only when matched by Microsoft ID; the row isn't compared. The IDs are in *Value in Azure DevOps* |
+| Field value differs | The workbook sets a value that differs from the work item's value |
+| Parent differs | The work item's parent isn't the item the workbook row's parent matched |
+| Work item type differs | The type was changed in Azure DevOps |
+| Work item not found in Azure DevOps | The ID in `ado-id-map.csv` was deleted, moved to another project, or you can't see it |
+| Deprecated or deleted in the workbook — still in Azure DevOps | Imported earlier, but the row is now skipped as Deprecated / Deleted (or sits below such a row). Close or remove the item by hand if it's no longer needed |
+| In Azure DevOps, not in the workbook | Imported earlier (or, when matched by Microsoft ID, has a Microsoft ID) but no workbook row matches. Not listed when the rehearsal was row-limited (`catalog_limit`) |
+| New row — a live run would create it | A workbook row that matches no existing item |
+
+Only fields the workbook fills are compared; an empty cell is never reported. Formatting differences that Azure DevOps introduces aren't reported either: HTML markup and entities, number formats (`3` vs `3.0`), multi-select and tag order and case, area/iteration path case, identities (compared by e-mail), booleans (`Yes` vs `true`), and date-time vs date. The report is information only: a live Catalog Import still only creates new items and skips the ones listed in `ado-id-map.csv`. If Azure DevOps can't be read (for example an expired PAT), the rehearsal still finishes and the section says why the comparison was skipped. Matching by Microsoft ID reads 10,000 work item IDs per query, so types with more than Azure DevOps' 20,000-per-query limit are still matched in full.
 
 **Results card.** When a run finishes, the UI shows a card under the run log with the headline, buttons to open the report and download the CSVs (served by the runner at `GET /outputs/{folder}/{file}`; only the files above), **What needs attention** (largest problems first, with example rows and the fix), a step list, and the automatic fixes. If catalog rows failed, **Set up Catalog Import re-run** selects Catalog Import as a single live step — `ado-id-map.csv` makes the re-run skip everything already created.
 
@@ -487,15 +517,17 @@ Via UI proxy: `/api/...`
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/health` | Liveness |
+| GET | `/health` | Liveness; `active_jobs` = runs queued or in progress (the launcher won't replace a busy runner) |
 | GET | `/defaults` | Newest release folder + template, `release_label`, `bpc_files_root`, `output_root` |
 | POST | `/plan/dry-run` | Parse Excel → IR → plan (no mutations) — UI **Preview plan**; includes `data_checks` when Catalog Import is selected |
 | POST | `/ir/parse` | Return full IR JSON |
-| POST | `/jobs` | Create a plan-only, rehearsal (`apply_dry_run`), or live apply job |
+| POST | `/jobs` | Create a plan-only, rehearsal (`apply_dry_run`), or live apply job. **409** while another rehearsal/live run for the same org + project is in progress (two at once would duplicate work items and overwrite reports) |
 | GET | `/jobs/{id}?since=N` | Poll job status/results; `since` returns only events from index N (`event_offset` / `event_total` in the response) |
 | POST | `/jobs/{id}/cancel` | Request a cooperative stop; status becomes `cancelled` |
 | GET | `/outputs/{folder}/{file}?root=` | Open/download a run output (summary HTML/JSON, failures / data-check CSV/JSON); `root` = the run output folder used (absolute; default output root when omitted); other file names are refused |
 | GET | `/fs/roots`, `/fs/list` | Local path browser used by Browse… |
+
+The runner has no login, so it only answers requests addressed to `127.0.0.1` or `localhost` and sends no CORS headers: other websites open in your browser can't read it. The UI reaches it through the `/api` proxy; `curl` and scripts on this machine work directly.
 
 ### Job create body (important fields)
 
@@ -518,6 +550,7 @@ Via UI proxy: `/api/...`
   "mode": "apply",
   "apply_dry_run": true,
   "convert_markdown_to_html": false,
+  "include_deprecated_deleted": false,
   "steps": null,
   "catalog_limit": null,
   "catalog_parallel_workers": 4,
@@ -529,11 +562,12 @@ Via UI proxy: `/api/...`
 |-------|-------|
 | `project_description` | Optional; set on create; PATCH on existing project when non-empty |
 | `mode` | `dry-run` = plan only; `apply` = run writers |
-| `apply_dry_run` | With `mode=apply`, run writers without ADO HTTP calls — UI **Rehearsal only** |
+| `apply_dry_run` | With `mode=apply`, run writers without ADO changes — UI **Rehearsal only**. Catalog Import makes read-only calls (project lookup; area paths, states and work items when the project exists) |
 | `convert_markdown_to_html` | Convert markdown-like text to HTML; default `false` (preserve markdown) |
-| `steps` | Optional subset, e.g. `["backlog"]` or `["catalog","report"]` |
+| `include_deprecated_deleted` | Import catalog rows whose Catalog status is Deprecated or Deleted (and rows below them); default `false` skips them. Also accepted by `POST /plan/dry-run` |
+| `steps` | Optional subset, e.g. `["backlog"]` or `["catalog","report"]`; always run in engine order. `null` runs every step; an empty list or an unknown step name is rejected (HTTP 422) |
 | `catalog_limit` | Cap drafts for smoke tests |
-| `catalog_parallel_workers` | Parent-aware Catalog Import and backfill workers (1–16; UI **Catalog workers**; default 4) |
+| `catalog_parallel_workers` | Parent-aware Catalog Import and backfill workers, also used for Backlog team settings (1–16; UI **Catalog workers**; default 4) |
 | `root_area_path` | Defaults to project name when omitted/empty in the UI |
 | `output_root` | Absolute folder for run outputs (UI **Run output folder**); results go to `<output_root>/<org>_<project>/`. Omit / `null` for `BPCTOOL_OUTPUT_DIR`, else `bpctool/runner-out` |
 
@@ -574,17 +608,19 @@ React UI (Vite)
   ├─ /extmgmt-proxy   → Extension Management (Multivalue check/install)
   ├─ /fs              → Local filesystem browser
   └─ /api             → Local runner :8787
-                      ├─ excel_ir.py         Excel → IR (keeps disabled WITs)
+                      ├─ excel_ir.py         Excel → IR (keeps disabled WITs); catalog sheet cache
                       ├─ planner.py          IR → plan (Preview plan)
                       ├─ richtext.py         HTML detect / optional MD→HTML
                       ├─ catalog_import.py   Drafts, Title 1..N parents, multiline flags
                       ├─ catalog_runtime.py  Parallel create, id-map resume, parent backfill
                       ├─ catalog_validate.py Data checks (prevalidate) before create
+                      ├─ catalog_changes.py  Rehearsal change report (workbook vs existing items)
                       ├─ failure_explain.py  Plain-language failure causes + fixes
                       ├─ run_outcome.py      Headline / attention / files for report + results card
                       ├─ paths.py            Release folders, output root
                       ├─ mapping.py          Catalog headers → field refs
-                      ├─ ado_client.py       REST client + retries + Multivalue / parent links
+                      ├─ ado_client.py       REST client + retries + Multivalue / parent links;
+                      │                      ReadOnlyAdoClient for rehearsals
                       ├─ org_url.py          Org URL normalize/parse
                       ├─ fs_browser.py       Path picker backend
                       ├─ apply_engine.py     Step orchestration (+ Multivalue gate)
@@ -602,7 +638,9 @@ Key design rules:
 - Multi-select uses suggested-picklist + DevLabs Multivalue control pattern
 - Empty Description is omitted (not invented)
 - No subprocess calls to the reference scripts
-- Launcher replaces stale `:8787` and starts uvicorn with `--reload`
+- Launcher replaces an idle BPCTool runner on `:8787` (reuses one with a run in progress) and starts uvicorn (with `--reload` only under `npm run dev`)
+- One rehearsal/live run per org + project at a time
+- Rehearsals never write to Azure DevOps: writers get no client, and Catalog Import's reads go through a client that refuses every write
 
 ---
 
@@ -620,7 +658,7 @@ npm run lint
 npm run build
 ```
 
-Notable runner coverage includes Excel IR (disabled WITs, backlogs, project-name placeholder), backlog rename/heal + WIT assignment, team area aggregation, team iterations / backlogIteration GUID, org URL normalize, layout booleans / multivalue control type, project description, Title-outline catalog parents, catalog data checks (area / iteration / state / length / picklists), failure explanations, run outcome + report, output folders, an end-to-end rehearsal, and multi-select field labels. UI tests cover run-mode step resolution (including Run from selected step onward).
+Notable runner coverage includes Excel IR (disabled WITs, backlogs, project-name placeholder), backlog rename/heal + WIT assignment, team area aggregation (team names ignoring case, *Include sub areas*, one area-tree read), team iterations / backlogIteration GUID and parallel team settings, org URL normalize, layout (boolean fallback payloads after a 400, one fields + form read per type, multivalue control type), project description (failure → warning), Title-outline catalog parents, catalog data checks (area / iteration / state / length / picklists, root area path), the rehearsal change report (ID map and Microsoft ID matching, value normalization, read-only client), step-name validation and the update policy for process / layout / backlog, concurrent-run lock, job cancel / PAT cleared / retention, existing-target checks, failure explanations, run outcome + report, output folders, an end-to-end rehearsal, and multi-select field labels. UI tests cover run-mode step resolution (including Run from selected step onward), the existing-target gates, and the runner-unreachable message.
 
 ---
 
@@ -628,17 +666,19 @@ Notable runner coverage includes Excel IR (disabled WITs, backlogs, project-name
 
 ### Runner unreachable / Preview plan fails
 
-**Symptom:** “Failed to reach local runner” or fetch to `/api/...` errors.
+**Symptom:** “Can't reach the local runner” in the status line, path picker, or after Preview plan / Run (older builds showed “Failed to fetch”). The terminal shows `http proxy error … ECONNREFUSED 127.0.0.1:8787`.
 
 **Fix:**
 
-1. Quit the Start BPCTool window and relaunch (or `npm start`)
-2. On first use, wait for setup to finish creating `.venv`
-3. Confirm `curl http://127.0.0.1:8787/health`
-4. Ensure nothing else owns port `8787`
-5. Run `npm run setup` once if the venv was never created
+1. On first launch, wait for `[bpc-runner] Ready.` in the terminal window — the launcher creates `.venv` first (about a minute; `[bpc-setup]` lines). The page loads the runner defaults once the runner answers
+2. If the terminal shows `[bpc-runner] First-launch setup failed` or *Python 3 is required*, install Python 3.11+, run `npm run setup` in `bpctool/`, then relaunch
+3. Otherwise quit the Start BPCTool window and relaunch (or `npm start`)
+4. Confirm `curl http://127.0.0.1:8787/health`
+5. Ensure nothing else owns port `8787`
 
 ### Port already in use
+
+The launcher logs *Port 8787 is in use by another program* when something other than BPCTool owns the port; it no longer stops it for you. Find and close that program (on Windows: `netstat -ano | findstr :8787`, then end the PID in Task Manager):
 
 ```bash
 # find / stop prior uvicorn, then relaunch the app
@@ -675,13 +715,21 @@ Use the current quarter's **ADO template guideline** workbook, not a catalog fil
 - Close Excel if files are locked (`~$` temp files are ignored)
 - Confirm Preview plan shows a non-zero **catalog rows** / **catalog files** count
 
+### A run is already in progress
+
+**Symptom:** starting a run fails with *A run is already in progress for this organization and project (job …)* (HTTP 409).
+
+**Why:** another rehearsal or live run for the same org + project is still going — often in a second browser tab. Two at once would create duplicate work items and overwrite each other's reports.
+
+**Fix:** wait for it to finish, or cancel it from the tab that started it, then start again.
+
 ### Update confirmation required
 
 **Symptom:** **Preview plan** and **Run** are disabled with “already exists. Confirm update…” under section 2, or the plan reports **Plan blocked** with the same message.
 
-**Why:** Preview plan does not call Azure DevOps itself. It uses the inventory you loaded with **Fetch existing projects / processes** (section 1). If a typed name matches that inventory and the policy is **Require confirmation** (or **Create only**), the runner rejects the plan. Rehearsal and live runs apply the same check.
+**Why:** Preview plan and Rehearsal only do not check the targets in Azure DevOps. They use the existing projects / processes loaded in section 1 (automatically on connect, or with the Fetch buttons). If a typed name matches that inventory and the policy is **Require confirmation** (or **Create only**), the runner rejects the plan. A live run checks Azure DevOps directly, so it can also stop with this message when the list wasn't fetched; the message then adds that the process/project *was not in the list loaded in the browser*.
 
-**Fix:** Tick the confirm-update box(es), or switch the policy to **Always update** / **Skip existing**.
+**Fix:** Click **Fetch existing processes** / **Fetch existing projects** so the confirm boxes appear and tick them, or switch the policy to **Always update** / **Skip existing**.
 
 ### PAT / 401 / 403 on live apply
 
@@ -709,6 +757,8 @@ You likely converted incorrectly, or multiline format was not applied:
 
 Some inherited WIT layouts can be locked. Check runner events for layout warnings. Ensure process step created/customized WITs before layout.
 
+A field Azure DevOps won't add to a type is logged as `Add field <ref> on <type>: …` (`Add boolean field …` for booleans, after the fallback payloads were tried too), counted as a warning, and gets no control. Fix the field in the template Fields sheet (type, default, required) and re-run **Page Layout**.
+
 ### Project create hangs
 
 ADO project creation is asynchronous. The runner polls for several seconds. If it times out, verify the project in the org UI and rerun with **skip-existing** or **always-update**.
@@ -723,12 +773,12 @@ Use **Browse…** (local runner filesystem picker) or paste a **full absolute pa
 
 ### Rehearsal still seemed to call ADO
 
-Current engine creates no ADO client when `apply_dry_run` is true. If you see ADO traffic, confirm the job body has `"apply_dry_run": true` and relaunch Start BPCTool / `npm start` to pick up code changes.
+A rehearsal never changes Azure DevOps. Its Catalog Import step looks up the project and, if it exists, reads area paths, states, and catalog work items for the data checks and change report (GET requests, plus the read-only `wiql` and `workitemsbatch` POSTs), through a client that refuses any other request. Any other traffic means the job isn't a rehearsal: confirm the job body has `"apply_dry_run": true` and relaunch Start BPCTool / `npm start` to pick up code changes.
 
 ### Teams step reported 0 assignments / Areas show no Teams
 
 1. Confirm **Rehearsal only** is **unchecked** for a live run (button reads **Run selected flow (live)**). A rehearsal never PATCHes `teamfieldvalues` (event log will say `No Azure DevOps teamfieldvalues were changed`).
-2. Quit and relaunch Start BPCTool / `npm start` after pulling code changes — the UI replaces any stale process on port `8787` and starts the runner with `--reload`.
+2. Quit and relaunch Start BPCTool / `npm start` after pulling code changes — the UI replaces an idle BPCTool runner on port `8787` and starts a new one on the current code (a runner with a run in progress is kept until that run finishes).
 3. Re-run the **Teams & areas** card only. The log should show many `Assigned team '…' → …` lines and finish with `N team area assignments` (fixture ≈ 47).
 
 ### Team iteration paths empty in Azure DevOps
@@ -808,8 +858,10 @@ Completion is stored per org/process/project key in `localStorage`. Use **Clear 
 ## 16. Security notes
 
 - PAT is kept in **sessionStorage** only (not persisted to disk)
+- The runner holds a job's PAT in memory only while the job runs and drops it when the job ends; it never writes or logs it
 - Prefer least-privilege PATs and rotate after bulk imports; extension install needs org extension-management rights
-- Runner binds to `127.0.0.1` by default (local only)
+- Runner binds to `127.0.0.1` by default (local only), accepts only `Host: 127.0.0.1` / `localhost`, and sends no CORS headers, so other web pages can't call it
+- A rehearsal uses the PAT for reads only (project lookup, area paths, states, work items); its client refuses every other request
 - Do not commit `.venv/`, `runner-out/`, or files containing PATs
 
 ---
@@ -821,13 +873,15 @@ Completion is stored per org/process/project key in `localStorage`. Use **Clear 
 - Disabling inherited system WITs via the public Process API can fail; manual disable in the ADO UI may still be required
 - `System.State` allowed values are owned by ADO process WIT models — not authored in the template Picklists sheet
 - Some Deliverables source columns (e.g. Job purpose / Job type / Data type) may not align with template picklists; prevalidate strips or reports but does not rewrite Microsoft source data
-- Catalog **Iteration Path** values only get their project name fixed; they are not checked against the project's iterations. **State** values are checked against Azure DevOps on live runs only
+- Catalog **Iteration Path** values only get their project name fixed; they are not checked against the project's iterations. **State** values are checked against Azure DevOps on live runs and on rehearsals against an existing project
+- Deprecated / Deleted rows are recognized only by the words *Deprecated* or *Deleted* in **Catalog status**; skipping a row never closes or removes a work item an earlier run created (a rehearsal lists those items)
 - Catalog import of ~15k rows (all matching workbooks) is long-running; use a **Rehearsal only** run + `catalog_limit` for smoke tests; tune **Catalog workers** (2–8 typical)
-- Catalog import is **create-only** for fields (no WIP upsert); **resume** skips keys in `ado-id-map.csv` and can backfill parent links. Updated spreadsheet rows do **not** refresh existing work item fields
+- Catalog import is **create-only** for fields (no WIP upsert); **resume** skips keys in `ado-id-map.csv` and can backfill parent links. Updated spreadsheet rows do **not** refresh existing work item fields; a **Rehearsal only** run lists them (`import-changes.csv`)
+- The rehearsal change report matches rows without `ado-id-map.csv` by Microsoft ID only, for the work item types in the workbook
 - Catalog still uses one REST create per work item (parent-aware parallel, keep-alive connections); no WIT `$batch`
-- Backfill trusts `ParentId` recorded in `ado-id-map.csv`; a parent changed by hand in ADO after create is not re-checked for those rows
+- Backfill trusts `ParentId` recorded in `ado-id-map.csv`; a parent changed by hand in ADO after create is not re-checked for those rows (a rehearsal reports it as *Parent differs*)
 - Only Hierarchy-Reverse parent links are created (same as the reference scripts — no Related / Predecessor, etc.)
-- Job store is in-memory; restarting the runner clears job history (and anything to reattach to after a page refresh)
+- Job store is in-memory; restarting the runner clears job history (and anything to reattach to after a page refresh). It keeps the 20 most recent finished jobs; polling an older job id returns 404
 - Cancel is cooperative: a single long ADO request (e.g. one layout call) finishes before the job stops
 - Some inherited layout surfaces can reject control updates; check layout warnings in the event log
 - Re-running Process may log `Field 'MSBPC.*' warning: ADO 404` when org-scoped fields already exist (Update API is lock/undelete only); fields remain usable — Layout binds them to WITs
@@ -851,6 +905,7 @@ In the browser:
   Rehearsal only UNCHECKED → Run selected flow (live) — red note names the target
   After run: check Run timing (per step + total) in the event log
   After any run: results card → Open report; Download failures / data checks
+  Rehearsal against an existing project: Changes since the last import (import-changes.csv)
   Keep ado-id-map.csv — a Catalog re-run resumes from it
 ```
 

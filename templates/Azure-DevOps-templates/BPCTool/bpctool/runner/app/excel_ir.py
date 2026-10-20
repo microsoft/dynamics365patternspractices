@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -425,6 +426,28 @@ def find_template_workbook(folder: Path) -> Path | None:
     return max(candidates, key=lambda path: (path.stat().st_mtime, path.name))
 
 
+def catalog_sheet_rows(path: Path) -> tuple[str, tuple[tuple[Any, ...], ...]]:
+    """First sheet name and rows of a catalog workbook, cached until the file changes.
+
+    Preview reads each workbook for the source summary and again for the drafts.
+    """
+    stat = path.stat()
+    return _read_first_sheet(str(path.resolve()), stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=8)
+def _read_first_sheet(
+    path: str, _mtime_ns: int, _size: int
+) -> tuple[str, tuple[tuple[Any, ...], ...]]:
+    wb = load_workbook(path, read_only=True, data_only=True)
+    try:
+        sheet_name = wb.sheetnames[0]
+        rows = tuple(wb[sheet_name].iter_rows(values_only=True))
+    finally:
+        wb.close()
+    return sheet_name, rows
+
+
 def parse_catalog_sources(catalog_dir: Path | None) -> dict[str, Any]:
     if catalog_dir is None:
         return {"files": [], "total_rows": 0, "work_item_types": {}}
@@ -438,14 +461,7 @@ def parse_catalog_sources(catalog_dir: Path | None) -> dict[str, Any]:
     for path in sorted(catalog_dir.glob("*.xlsx")):
         if not is_catalog_source_file(path):
             continue
-        wb = load_workbook(path, read_only=True, data_only=True)
-        try:
-            sheet_name = wb.sheetnames[0]
-            ws = wb[sheet_name]
-            rows = list(ws.iter_rows(values_only=True))
-        finally:
-            wb.close()
-
+        sheet_name, rows = catalog_sheet_rows(path)
         if not rows:
             continue
 

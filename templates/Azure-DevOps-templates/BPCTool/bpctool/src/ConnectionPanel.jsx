@@ -190,8 +190,9 @@ export default function ConnectionPanel({
           <div className="connection-note">
             <p>{connectionStatusText}</p>
             <p>
-              Org URL and PAT stay in this browser session only. Fetching existing
-              projects/processes is optional and used to validate create vs update policy.
+              Org URL and PAT stay in this browser session only. Existing projects and
+              processes load automatically once both are filled in (and after each live run);
+              they drive the create vs update policy. Use the buttons to refresh.
               The local apply engine starts automatically with the app — no separate terminal.
             </p>
           </div>

@@ -5,18 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .models import DryRunResponse, PlanAction
+from .models import ENGINE_STEPS, DryRunResponse, PlanAction
 
-
-STEP_ORDER = [
-    "process",
-    "layout",
-    "project",
-    "teams",
-    "backlog",
-    "catalog",
-    "report",
-]
+STEP_ORDER = list(ENGINE_STEPS)
+# Backlog renames / creates / deletes the process's backlog levels and moves work item
+# types between them, which changes every project on the process.
+PROCESS_STEPS = frozenset({"process", "layout", "backlog"})
 
 
 def _action(
@@ -72,8 +66,24 @@ def build_dry_run_plan(
     process_exists = bool(known_process_exists)
     project_exists = bool(known_project_exists)
     selected = set(step_filter) if step_filter else set(STEP_ORDER)
-    touches_process = bool(selected & {"process", "layout"})
+    touches_process = bool(selected & PROCESS_STEPS)
     touches_project_create = "project" in selected
+
+    unchecked = [
+        label
+        for label, known, touched in (
+            ("process", known_process_exists, touches_process),
+            ("project", known_project_exists, touches_project_create),
+        )
+        if known is None and touched
+    ]
+    if unchecked and update_policy != "always-update":
+        warnings.append(
+            f"Not known whether the {' and '.join(unchecked)} already exist"
+            f"{'s' if len(unchecked) == 1 else ''} (existing list not fetched), so this plan treats "
+            f"{'it as' if len(unchecked) == 1 else 'them as'} new. A live run checks Azure DevOps "
+            "and applies the existing target policy then."
+        )
 
     # Policy gates (UI also validates; runner enforces).
     # Scope confirmations to steps that will actually run so selected-step
@@ -81,7 +91,7 @@ def build_dry_run_plan(
     if update_policy == "require-confirmation":
         if process_exists and not confirm_process_update and touches_process:
             errors.append(
-                f'Process "{process_name}" already exists. Confirm update before planning process/layout applies.'
+                f'Process "{process_name}" already exists. Confirm update before planning process / layout / backlog changes.'
             )
         if project_exists and not confirm_project_update and touches_project_create:
             errors.append(
@@ -153,6 +163,9 @@ def build_dry_run_plan(
             "summary": (
                 f"Configure {counts['backlogs']} backlog levels and "
                 f"{counts['iteration_paths']} iteration paths"
+                if process_action != "skip"
+                else f"Configure {counts['iteration_paths']} iteration paths and team settings; "
+                "the existing process's backlog levels are left as they are (skip-existing)"
             ),
         },
         {

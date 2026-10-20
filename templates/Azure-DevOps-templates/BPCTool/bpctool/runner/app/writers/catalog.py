@@ -10,7 +10,20 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 from ..ado_client import AdoClient, AdoError
-from ..catalog_import import load_catalog_drafts
+from ..catalog_changes import (
+    compare_with_azure_devops,
+    match_by_microsoft_id,
+    summarize_changes,
+    write_changes_csv,
+)
+from ..catalog_import import (
+    SKIPPED_RETIRED_CSV,
+    SkippedDraft,
+    is_retired,
+    load_catalog_drafts,
+    split_retired_drafts,
+    write_skipped_csv,
+)
 from ..catalog_runtime import (
     Progress,
     ShouldCancel,
@@ -19,6 +32,7 @@ from ..catalog_runtime import (
     import_drafts_parent_aware,
     load_id_map,
     load_id_map_parents,
+    read_id_map_rows,
 )
 from ..catalog_validate import (
     prevalidate_catalog_drafts,
@@ -31,6 +45,9 @@ from ..run_outcome import catalog_placeholder_count, project_name_notice
 
 Emit = Callable[[str, str], None]
 
+CHANGES_CSV = "import-changes.csv"
+CHANGES_JSON = "import-changes.json"
+
 
 def apply_catalog(
     client: AdoClient,
@@ -41,11 +58,15 @@ def apply_catalog(
     output_dir: Path,
     limit: int | None = None,
     convert_markdown_to_html: bool = False,
+    include_deprecated_deleted: bool = False,
     parallel_workers: int | None = None,
     progress: Progress | None = None,
     should_cancel: ShouldCancel | None = None,
     run_id: str = "",
+    area_root: str = "",
+    change_reader: AdoClient | None = None,
 ) -> dict[str, Any]:
+    """``change_reader`` (rehearsal only) is used for reads, never writes."""
     project = ir["targets"]["project_name"]
     catalog_dir = ir["source"].get("catalog_source_dir")
     workers = clamp_parallel_workers(parallel_workers)
@@ -79,10 +100,14 @@ def apply_catalog(
         limit=limit,
         convert_markdown_to_html=convert_markdown_to_html,
     )
+    retired: list[SkippedDraft] = []
+    if not include_deprecated_deleted:
+        drafts, retired = split_retired_drafts(drafts)
     stats["drafts"] = len(drafts)
+    stats["retired_skipped"] = len(retired)
 
     for draft in drafts:
-        for ref, kind in draft.content_formats.items():
+        for kind in draft.content_formats.values():
             stats["html_fields_normalized"] += 1
             if kind == "markdown":
                 stats["markdown_preserved"] += 1
@@ -103,6 +128,21 @@ def apply_catalog(
     )
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    skipped_path = output_dir / SKIPPED_RETIRED_CSV
+    if retired:
+        write_skipped_csv(retired, skipped_path)
+        direct = sum(1 for item in retired if is_retired(item.draft))
+        below = len(retired) - direct
+        emit(
+            "catalog",
+            f"Skipped {len(retired)} Deprecated / Deleted catalog row(s)"
+            + (f" ({direct} with that Catalog status, {below} below them)" if below else "")
+            + f" — not imported. List: {skipped_path.name}",
+        )
+    else:
+        skipped_path.unlink(missing_ok=True)
+        if include_deprecated_deleted:
+            emit("catalog", "Including Deprecated / Deleted catalog rows (they are imported like any other row)")
     id_map_path = output_dir / "ado-id-map.csv"
     failures_path = output_dir / "import-failures.json"
     failures_csv_path = output_dir / "import-failures.csv"
@@ -146,8 +186,13 @@ def apply_catalog(
         f"(Title 1..N outline / ADO CSV style)",
     )
 
-    extra_areas, allowed_states = ([], None) if dry_run else _live_project_context(
-        client, project, {d.work_item_type for d in drafts if d.fields.get("System.State")}, emit
+    id_map_rows = read_id_map_rows(id_map_path)
+    project_lookup = _rehearsal_project_lookup(change_reader, project, emit) if dry_run else {}
+    context_client = (
+        (change_reader if project_lookup.get("exists") else None) if dry_run else client
+    )
+    extra_areas, allowed_states = _live_project_context(
+        context_client, project, {d.work_item_type for d in drafts if d.fields.get("System.State")}, emit
     )
     pre = prevalidate_catalog_drafts(
         drafts,
@@ -157,6 +202,7 @@ def apply_catalog(
         project=project,
         extra_area_paths=extra_areas,
         allowed_states=allowed_states,
+        area_root=area_root,
     )
     summary = prevalidate_summary(pre)
     stats["prevalidate"] = summary
@@ -197,8 +243,23 @@ def apply_catalog(
             )
             + "then parent-link backfill",
         )
-        stats["skipped"] = len(existing)
+        # Only workbook rows count; the map may list items no longer in the workbook.
+        stats["skipped"] = len(drafts) - remaining
         stats["id_map_path"] = str(preview_path)
+        stats["changes"] = _write_change_report(
+            change_reader,
+            drafts,
+            id_map_rows,
+            mapping,
+            project=project,
+            output_dir=output_dir,
+            workers=workers,
+            emit=emit,
+            run_id=run_id,
+            complete_workbook=limit is None,
+            project_lookup=project_lookup,
+            retired=[item.draft for item in retired],
+        )
         return stats
 
     id_map = load_id_map(id_map_path)
@@ -266,6 +327,118 @@ def apply_catalog(
         + f", workers {workers}",
     )
     return stats
+
+
+def _write_change_report(
+    reader: AdoClient | None,
+    drafts: list[Any],
+    id_map_rows: list[dict[str, str]],
+    mapping: TemplateMapping,
+    *,
+    project: str,
+    output_dir: Path,
+    workers: int,
+    emit: Emit,
+    run_id: str,
+    complete_workbook: bool,
+    project_lookup: dict[str, Any],
+    retired: list[Any] = (),
+) -> dict[str, Any]:
+    """Rehearsal: compare the workbook with the work items already in the project.
+
+    Items come from ado-id-map.csv, or, when there is none but the project exists,
+    from matching rows to the project's work items by Microsoft ID. ``retired`` rows
+    (skipped Deprecated / Deleted) are matched only to label their existing items.
+    """
+    csv_path = output_dir / CHANGES_CSV
+    json_path = output_dir / CHANGES_JSON
+    for stale in (csv_path, json_path):
+        stale.unlink(missing_ok=True)
+    if reader is None:
+        emit("catalog", "Changes: not compared — no valid PAT to read Azure DevOps")
+        return {"skipped": "no_connection"}
+    exists = project_lookup.get("exists")
+    if exists is None:
+        error = f"could not check whether project '{project}' exists: {project_lookup.get('error')}"
+        emit("catalog", f"Changes: {error}")
+        return {"error": error}
+    if not exists:
+        if id_map_rows:
+            error = (
+                f"project '{project}' does not exist in Azure DevOps, but ado-id-map.csv lists "
+                f"{len(id_map_rows):,} items from an earlier import — the project was deleted or renamed"
+            )
+            emit("catalog", f"Changes: {error}")
+            return {"error": error}
+        emit("catalog", f"Changes: project '{project}' doesn't exist yet and there's no earlier Catalog Import — nothing to compare")
+        return {"skipped": "nothing_to_compare", "project": project}
+
+    label_for = _label_lookup(mapping)
+    try:
+        if id_map_rows:
+            matched_by = "id_map"
+            rows, items, ambiguous = id_map_rows, None, None
+        else:
+            matched_by = "microsoft_id"
+            emit("catalog", "Changes: no ado-id-map.csv in this output folder — matching rows to the project's work items by Microsoft ID")
+            rows, items, ambiguous = match_by_microsoft_id(
+                reader, [*drafts, *retired], project=project, workers=workers, emit=emit
+            )
+            kept = {draft.key for draft in drafts}
+            ambiguous = [change for change in ambiguous if change.key in kept]
+        changes = compare_with_azure_devops(
+            reader,
+            drafts,
+            rows,
+            mapping,
+            project=project,
+            label_for=label_for,
+            workers=workers,
+            emit=emit,
+            complete_workbook=complete_workbook,
+            items=items,
+            ambiguous=ambiguous,
+            retired_keys={draft.key for draft in retired},
+        )
+    except AdoError as exc:
+        emit("catalog", f"Changes: could not read work items from Azure DevOps (report skipped): {exc}")
+        return {"error": str(exc)}
+    matched_keys = {str(row.get("Key") or "").strip() for row in rows}
+    compared = sum(1 for draft in drafts if draft.key in matched_keys)
+    summary = summarize_changes(changes, compared=compared)
+    summary.update(matchedBy=matched_by, rows=len(drafts))
+    if not complete_workbook:
+        summary["partialWorkbook"] = True
+    write_changes_csv(changes, csv_path)
+    json_path.write_text(json.dumps({**_run_stamp(run_id), **summary}, indent=2), encoding="utf-8")
+    duplicates = summary["byKind"]["exists_not_in_id_map"]
+    emit(
+        "catalog",
+        f"Changes: {summary['itemsChanged']} of {compared} existing item(s) differ from the workbook "
+        f"({summary['fieldsChanged']} field value(s)); "
+        f"{summary['byKind']['new_row']} new row(s)"
+        + (f"; {duplicates} row(s) a live run would create again (not in ado-id-map.csv)" if duplicates else "")
+        + f". Full list: {csv_path.name}",
+    )
+    return summary
+
+
+def _rehearsal_project_lookup(reader: AdoClient | None, project: str, emit: Emit) -> dict[str, Any]:
+    """``exists``: True / False, or None when Azure DevOps couldn't be asked."""
+    if reader is None:
+        return {"exists": None, "error": "no valid PAT"}
+    try:
+        exists = reader.get_project_id(project) is not None
+    except AdoError as exc:
+        emit("catalog", f"Could not check whether project '{project}' exists: {exc}")
+        return {"exists": None, "error": str(exc)}
+    emit(
+        "catalog",
+        f"Project '{project}' exists in Azure DevOps — data checks use its area paths and states"
+        if exists
+        else f"Project '{project}' doesn't exist in Azure DevOps yet — data checks use the template only",
+    )
+    return {"exists": exists}
 
 
 def _run_stamp(run_id: str) -> dict[str, str]:

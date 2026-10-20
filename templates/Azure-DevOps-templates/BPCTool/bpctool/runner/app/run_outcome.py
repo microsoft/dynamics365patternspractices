@@ -33,6 +33,14 @@ OUTPUT_FILES: dict[str, tuple[str, str]] = {
         "Data checks",
         "Every catalog value that was changed or needs review, with source file and row. Opens in Excel.",
     ),
+    "import-changes.csv": (
+        "Changes since last import",
+        "Rehearsal: every difference between the workbook and the work items already in Azure DevOps. Opens in Excel.",
+    ),
+    "skipped-deprecated-deleted.csv": (
+        "Skipped rows (deprecated / deleted)",
+        "Catalog rows not imported because their Catalog status, or a parent row's, is Deprecated or Deleted. Opens in Excel.",
+    ),
     "ado-id-map.csv": (
         "Imported items",
         "Catalog key → Azure DevOps work item ID. Used to resume; keep this file.",
@@ -42,7 +50,9 @@ OUTPUT_FILES: dict[str, tuple[str, str]] = {
     f"{REHEARSAL_SUMMARY_NAME}.json": ("Rehearsal report (JSON)", "Machine-readable version."),
     "import-failures.json": ("Rows that failed (JSON)", "Machine-readable failures with raw errors."),
     "import-prevalidate.json": ("Data checks (JSON)", "Machine-readable data-check summary."),
+    "import-changes.json": ("Changes (JSON)", "Machine-readable change summary."),
 }
+REHEARSAL_ONLY_FILES = ("import-changes.",)
 
 
 PROJECT_PLACEHOLDER_TEXT = "Your Project Name Here"
@@ -107,6 +117,11 @@ def describe_step(step_id: str, result: dict[str, Any], *, dry_run: bool) -> tup
             + _warning_note(result)
         )
     if step_id == "project":
+        if result.get("existed") and result.get("description_error"):
+            return "warning", (
+                "Project already existed — kept, but its description could not be updated: "
+                f"{result['description_error']}"
+            )
         if result.get("existed"):
             return "ok", "Project already existed — kept" + (
                 ", description updated." if result.get("description_updated") else "."
@@ -147,7 +162,7 @@ def describe_step(step_id: str, result: dict[str, Any], *, dry_run: bool) -> tup
 
 def _file_rows(output_dir: Path, run_started: float | None, *, dry_run: bool) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    skip = LIVE_SUMMARY_NAME if dry_run else REHEARSAL_SUMMARY_NAME
+    skip = (LIVE_SUMMARY_NAME,) if dry_run else (REHEARSAL_SUMMARY_NAME, *REHEARSAL_ONLY_FILES)
     for name, (label, description) in OUTPUT_FILES.items():
         if name.startswith(skip):
             continue
@@ -179,6 +194,105 @@ def _example_text(example: dict[str, Any]) -> str:
     elif not problem and example.get("fieldLabel"):
         problem = f"{example['fieldLabel']} is empty"
     return f"{text} — {problem}" if problem else text
+
+
+CHANGE_KIND_TEXT = {
+    "exists_not_in_id_map": (
+        "row is already in Azure DevOps but not in ado-id-map.csv — a live run would create it again",
+        "rows are already in Azure DevOps but not in ado-id-map.csv — a live run would create them again",
+    ),
+    "ambiguous_match": (
+        "row matches several work items in Azure DevOps (same Microsoft ID)",
+        "rows match several work items in Azure DevOps (same Microsoft ID)",
+    ),
+    "parent_changed": ("item has a different parent", "items have a different parent"),
+    "type_changed": ("item has a different work item type", "items have a different work item type"),
+    "missing_in_ado": (
+        "imported item is no longer in Azure DevOps (deleted or moved)",
+        "imported items are no longer in Azure DevOps (deleted or moved)",
+    ),
+    "retired_in_workbook": (
+        "item in Azure DevOps is Deprecated or Deleted in the workbook — close or remove it by hand if no longer needed",
+        "items in Azure DevOps are Deprecated or Deleted in the workbook — close or remove them by hand if no longer needed",
+    ),
+    "not_in_workbook": (
+        "item in Azure DevOps is not in the workbook",
+        "items in Azure DevOps are not in the workbook",
+    ),
+    "new_row": ("new row — a live run would create it", "new rows — a live run would create them"),
+}
+
+
+def describe_changes(raw: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Rehearsal change report as display text; None when the catalog didn't compare."""
+    if not raw:
+        return None
+    base = {"file": "", "items": [], "fields": [], "partialWorkbook": bool(raw.get("partialWorkbook"))}
+    if raw.get("error"):
+        return {**base, "status": "error",
+                "summary": f"Could not read the work items from Azure DevOps, so changes were not compared: {raw['error']}"}
+    if raw.get("skipped") == "nothing_to_compare":
+        return {**base, "status": "none",
+                "summary": f"Project '{raw.get('project') or ''}' doesn't exist in Azure DevOps yet and there's "
+                           "no earlier Catalog Import in this output folder, so there is nothing to compare."}
+    if raw.get("skipped") == "no_connection":
+        return {**base, "status": "none",
+                "summary": "Changes were not compared: no valid PAT to read Azure DevOps."}
+    if raw.get("skipped"):
+        return None
+    compared = int(raw.get("compared") or 0)
+    changed = int(raw.get("itemsChanged") or 0)
+    by_kind = raw.get("byKind") or {}
+    verb = "differs" if changed == 1 else "differ"
+    fields_text = _plural(raw.get("fieldsChanged"), "field value")
+    if raw.get("matchedBy") == "microsoft_id":
+        summary = (
+            "No ado-id-map.csv in this output folder, so workbook rows were matched to the project's "
+            f"work items by Microsoft ID: {n(compared)} of {n(raw.get('rows'))} rows matched."
+        )
+        if changed:
+            summary += f" {_plural(changed, 'item')} {verb} from the workbook ({fields_text})."
+        elif compared:
+            summary += " All matched items match the workbook."
+    elif changed:
+        summary = f"{_plural(changed, 'item')} of {n(compared)} imported earlier {verb} from the workbook ({fields_text})."
+    else:
+        summary = f"All {n(compared)} items imported earlier match the workbook."
+    items = [
+        f"{n(by_kind[kind])} {CHANGE_KIND_TEXT[kind][0 if by_kind[kind] == 1 else 1]}"
+        for kind in CHANGE_KIND_TEXT
+        if by_kind.get(kind)
+    ]
+    fields = [
+        {
+            "field": entry["field"],
+            "count": entry["count"],
+            "teamOwned": bool(entry.get("teamOwned")),
+            "examples": [
+                f"{ex.get('key')} (#{ex.get('workItemId')}): '{ex.get('current') or ''}' → '{ex.get('workbook') or ''}'"
+                for ex in entry.get("examples") or []
+            ],
+        }
+        for entry in (raw.get("byField") or [])[:12]
+    ]
+    return {
+        **base,
+        "status": "changed" if changed or items else "same",
+        "summary": summary,
+        "compared": compared,
+        "itemsChanged": changed,
+        "items": items,
+        "fields": fields,
+        "note": (
+            "A live run does not apply these changes: Catalog Import only creates new items. "
+            + (
+                "Without ado-id-map.csv it can't tell which rows already exist, so it creates every row."
+                if raw.get("matchedBy") == "microsoft_id"
+                else "It skips the items it imported before."
+            )
+        ),
+        "file": "import-changes.csv",
+    }
 
 
 def build_outcome(
@@ -227,7 +341,7 @@ def build_outcome(
                 "severity": "error",
                 "title": f"{_plural(group['count'], 'row')}: {group['label']}{catalog_note}",
                 "detail": (
-                    f"These rows were not imported"
+                    "These rows were not imported"
                     + (f", and {_plural(blocked, 'child row')} under them were blocked." if blocked else ".")
                 ),
                 "fix": group.get("fix", ""),
@@ -274,6 +388,27 @@ def build_outcome(
                     "count": 0,
                 }
             )
+    raw_changes = catalog.get("changes") if dry_run and "catalog" not in earlier else None
+    duplicates = int(((raw_changes or {}).get("byKind") or {}).get("exists_not_in_id_map") or 0)
+    if duplicates:
+        attention.append(
+            {
+                "severity": "warning",
+                "title": f"{_plural(duplicates, 'row')} already in Azure DevOps would be created again",
+                "detail": (
+                    "These workbook rows match existing work items by Microsoft ID, but this output folder "
+                    "has no ado-id-map.csv, so a live Catalog Import would create duplicates."
+                ),
+                "fix": (
+                    "Before the live run, choose the Run output folder that holds the ado-id-map.csv from the "
+                    "earlier import (or copy that file into this one). If the items were created some other "
+                    "way, don't run Catalog Import into this project."
+                ),
+                "examples": [],
+                "file": "import-changes.csv",
+                "count": duplicates,
+            }
+        )
     severity_rank = {"error": 0, "warning": 1, "info": 2}
     attention.sort(key=lambda item: (severity_rank[item["severity"]], -int(item["count"] or 0)))
 
@@ -286,7 +421,22 @@ def build_outcome(
         }
         for group in prevalidate.get("automaticFixes") or []
     ]
+    retired = int(catalog.get("retired_skipped") or 0)
+    if retired:
+        automatic.insert(
+            0,
+            {
+                "kind": "retired_rows_skipped",
+                "label": "Deprecated / Deleted catalog rows skipped",
+                "count": retired,
+                "outcome": (
+                    "Not imported: their Catalog status, or a parent row's, is Deprecated or Deleted "
+                    "(skipped-deprecated-deleted.csv). Tick “Import Deprecated / Deleted rows” to include them."
+                ),
+            },
+        )
 
+    changes = describe_changes(catalog.get("changes")) if dry_run and "catalog" not in earlier else None
     drafts = int(catalog.get("drafts") or 0)
     done = int(catalog.get("created") or 0) + int(catalog.get("skipped") or 0)
     failure_summary = catalog.get("failure_summary") or {}
@@ -310,6 +460,13 @@ def build_outcome(
             parts.append(f"A live run would import {n(remaining)} of {n(drafts)} catalog items.")
         if review_total:
             parts.append(f"{_plural(review_total, 'value')} need review before the live run.")
+        if duplicates:
+            parts.append(f"{_plural(duplicates, 'row')} would be created again — see What needs attention.")
+        if changes and changes.get("itemsChanged"):
+            parts.append(
+                f"{_plural(changes['itemsChanged'], 'item')} already in Azure DevOps "
+                f"{'differs' if changes['itemsChanged'] == 1 else 'differ'} from the workbook."
+            )
         subline = " ".join(parts) or "Uncheck “Rehearsal only” and run again for the live run."
     elif errors and "catalog" in earlier:
         status = "attention"
@@ -359,6 +516,7 @@ def build_outcome(
         "steps": steps,
         "attention": attention,
         "automaticFixes": automatic,
+        "changes": changes,
         "files": _file_rows(output_dir, run_started, dry_run=dry_run) if output_dir else [],
         "outputFolder": output_dir.name if output_dir else "",
         "outputDir": str(output_dir) if output_dir else "",

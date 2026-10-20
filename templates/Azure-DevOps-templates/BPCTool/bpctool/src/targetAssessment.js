@@ -83,7 +83,8 @@ export function gateExistingTargetUpdates({
   const skippedStepIds = []
   const planned = new Set(targetStepIds)
 
-  const processTouched = planned.has('process') || planned.has('layout')
+  // Backlog changes the process's backlog levels, which every project on the process shares.
+  const processTouched = planned.has('process') || planned.has('layout') || planned.has('backlog')
   const projectTouched = planned.has('project') || planned.has('teams') || planned.has('backlog')
 
   if (updatePolicy === 'skip-existing') {
@@ -99,7 +100,9 @@ export function gateExistingTargetUpdates({
     if (
       processTouched &&
       assessment.process.exists &&
-      (planned.has('process') || (planned.has('layout') && assessment.workbook.changed)) &&
+      (planned.has('process') ||
+        planned.has('backlog') ||
+        (planned.has('layout') && assessment.workbook.changed)) &&
       !confirmProcessUpdate
     ) {
       errors.push(
@@ -115,7 +118,7 @@ export function gateExistingTargetUpdates({
   }
 
   if (updatePolicy === 'create-only') {
-    if (assessment.process.exists && processTouched && planned.has('process')) {
+    if (assessment.process.exists && processTouched) {
       errors.push(
         `Process "${assessment.process.name}" already exists and update policy is create-only.`,
       )
@@ -147,6 +150,8 @@ export function workbookApplyKey(orgUrl, processName) {
 /**
  * Validate typed process/project names for create/update against policy.
  * Returns field errors and whether the run can proceed for naming.
+ * With targetStepIds, policy only applies to the targets those steps change
+ * (process: Process / Layout / Backlog; project: Project), as the runner does.
  */
 export function validateTargetNames({
   processName,
@@ -156,6 +161,7 @@ export function validateTargetNames({
   confirmProcessUpdate = false,
   confirmProjectUpdate = false,
   requireProjectName = true,
+  targetStepIds = null,
 }) {
   const errors = {
     processName: [],
@@ -184,26 +190,35 @@ export function validateTargetNames({
     }
   }
 
-  if (assessment && updatePolicy === 'require-confirmation') {
-    if (assessment.process.exists && !confirmProcessUpdate) {
+  const planned = targetStepIds ? new Set(targetStepIds) : null
+  const checkProcess = Boolean(
+    assessment?.process.exists &&
+      (!planned || planned.has('process') || planned.has('layout') || planned.has('backlog')),
+  )
+  const checkProject = Boolean(
+    requireProjectName && assessment?.project.exists && (!planned || planned.has('project')),
+  )
+
+  if (updatePolicy === 'require-confirmation') {
+    if (checkProcess && !confirmProcessUpdate) {
       errors.policy.push(
         `Process "${process}" already exists. Confirm update before the workflow can proceed.`,
       )
     }
-    if (requireProjectName && assessment.project.exists && !confirmProjectUpdate) {
+    if (checkProject && !confirmProjectUpdate) {
       errors.policy.push(
         `Project "${project}" already exists. Confirm update before the workflow can proceed.`,
       )
     }
   }
 
-  if (assessment && updatePolicy === 'create-only') {
-    if (assessment.process.exists) {
+  if (updatePolicy === 'create-only') {
+    if (checkProcess) {
       errors.policy.push(
         `Process "${process}" already exists and policy is create-only.`,
       )
     }
-    if (requireProjectName && assessment.project.exists) {
+    if (checkProject) {
       errors.policy.push(
         `Project "${project}" already exists and policy is create-only.`,
       )

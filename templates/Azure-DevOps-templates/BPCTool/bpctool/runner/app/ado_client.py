@@ -366,21 +366,29 @@ class AdoClient:
         return list(data.get("value") or [])
 
     def get_project_id(self, project_name: str) -> str | None:
-        target = project_name.strip().lower()
-        for project in self.list_projects():
-            if str(project.get("name") or "").strip().lower() == target:
-                return str(project.get("id"))
-        return None
+        """Direct lookup by name; listing projects returns only the first 100."""
+        name = project_name.strip()
+        if not name:
+            return None
+        try:
+            data = self.get(f"/_apis/projects/{quote(name, safe='')}", api_version="7.1-preview.4") or {}
+        except AdoError as exc:
+            if exc.status == 404:
+                return None
+            raise
+        return str(data["id"]) if data.get("id") else None
 
     def get_project_process_id(self, project_id: str) -> str | None:
-        """templateTypeId (process) a project is bound to, via project capabilities."""
+        """Process typeId the project was created from (System.ProcessTemplateType)."""
         data = self.get(
-            f"/_apis/projects/{quote(project_id, safe='')}?includeCapabilities=true",
-            api_version="7.1-preview.4",
+            f"/_apis/projects/{quote(project_id, safe='')}/properties"
+            "?keys=System.ProcessTemplateType",
+            api_version="7.1-preview.1",
         ) or {}
-        template = ((data.get("capabilities") or {}).get("processTemplate") or {})
-        type_id = template.get("templateTypeId")
-        return str(type_id) if type_id else None
+        for prop in data.get("value") or []:
+            if str(prop.get("name") or "") == "System.ProcessTemplateType":
+                return str(prop.get("value") or "") or None
+        return None
 
     def create_project(
         self,
@@ -501,6 +509,32 @@ class AdoClient:
         data = self.post("/_apis/wit/wiql", {"query": query}, project=project) or {}
         return [int(item["id"]) for item in data.get("workItems") or [] if "id" in item]
 
+    WIQL_PAGE = 10000
+
+    def find_work_items_with_field(self, project: str, work_item_type: str, field_ref: str) -> list[int]:
+        """IDs of items of one type with ``field_ref`` set, read in ID order a page at a time.
+
+        A WIQL query fails outright above 20,000 results, so each page asks for the next
+        ``WIQL_PAGE`` IDs after the last one seen.
+        """
+        ids: list[int] = []
+        last = 0
+        while True:
+            query = (
+                "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project"
+                f" AND [System.WorkItemType] = {_wiql_literal(work_item_type)}"
+                f" AND [{field_ref}] <> ''"
+                f" AND [System.Id] > {last} ORDER BY [System.Id]"
+            )
+            data = self.post(
+                f"/_apis/wit/wiql?$top={self.WIQL_PAGE}", {"query": query}, project=project
+            ) or {}
+            page = [int(item["id"]) for item in data.get("workItems") or [] if "id" in item]
+            ids.extend(page)
+            if len(page) < self.WIQL_PAGE:
+                return ids
+            last = max(page)
+
     def get_parent_id(self, project: str, work_item_id: int) -> int | None:
         """Return Hierarchy-Reverse parent id, or None if unlinked."""
         data = (
@@ -553,3 +587,26 @@ class AdoClient:
             json_body=patch,
             content_type="application/json-patch+json",
         )
+
+    def get_work_items_batch(self, project: str, ids: list[int]) -> list[dict[str, Any]]:
+        """Up to 200 work items with all fields; deleted or inaccessible IDs are left out."""
+        data = self.post(
+            "/_apis/wit/workitemsbatch",
+            project=project,
+            json_body={"ids": [int(i) for i in ids], "errorPolicy": "omit"},
+            api_version="7.1",
+        ) or {}
+        return [item for item in data.get("value") or [] if item]
+
+
+class ReadOnlyAdoClient(AdoClient):
+    """For rehearsals: refuses every request that could change Azure DevOps."""
+
+    _READ_POSTS = ("/_apis/wit/workitemsbatch", "/_apis/wit/wiql")
+
+    def request(self, method: str, path: str, **kwargs: Any) -> Any:
+        verb = method.upper()
+        clean = path.split("?")[0]
+        if verb != "GET" and not (verb == "POST" and clean.endswith(self._READ_POSTS)):
+            raise AdoError(f"Rehearsal is read-only: refused {verb} {clean}")
+        return super().request(method, path, **kwargs)

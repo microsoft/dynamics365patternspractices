@@ -23,6 +23,8 @@ import {
   buildRunnerJobBody,
   cancelRunnerJob,
   pollRunnerJob,
+  RUNNER_UNREACHABLE,
+  runnerFetch,
   runRunnerJob,
 } from './runnerApi'
 import {
@@ -213,6 +215,7 @@ function App() {
   // check this only when you want writers to skip Azure DevOps mutations.
   const [dryRun, setDryRun] = useState(false)
   const [convertMarkdownToHtml, setConvertMarkdownToHtml] = useState(false)
+  const [includeDeprecatedDeleted, setIncludeDeprecatedDeleted] = useState(false)
   const [runMessage, setRunMessage] = useState('No action run yet.')
   const [runLogs, setRunLogs] = useState([])
   const [isRunning, setIsRunning] = useState(false)
@@ -237,11 +240,12 @@ function App() {
   const [processes, setProcesses] = useState([])
   const [fetchingProcesses, setFetchingProcesses] = useState(false)
   const [processesFetched, setProcessesFetched] = useState(false)
+  const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0)
   const [apiStatusText, setApiStatusText] = useState(
     'Fetch projects to validate the PAT against Azure DevOps.',
   )
-  const [extensionStatus, setExtensionStatus] = useState('unknown')
-  const [extensionMessage, setExtensionMessage] = useState('')
+  const [checkedExtensionStatus, setExtensionStatus] = useState('unknown')
+  const [checkedExtensionMessage, setExtensionMessage] = useState('')
   const [extensionBusy, setExtensionBusy] = useState(false)
 
   const [catalogProgress, setCatalogProgress] = useState(null)
@@ -296,11 +300,12 @@ function App() {
 
   const loadRunnerDefaults = async ({ onlyEmpty = false } = {}) => {
     try {
-      const response = await fetch('/api/defaults')
+      const response = await runnerFetch('/api/defaults')
       if (!response.ok) {
         throw new Error(`Runner defaults unavailable (${response.status})`)
       }
       const defaults = await response.json()
+      setRunMessage((current) => (current === RUNNER_UNREACHABLE ? 'No action run yet.' : current))
       if (defaults.output_root) {
         setOutputRoot(defaults.output_root)
       }
@@ -331,8 +336,12 @@ function App() {
         )
       }
     } catch (error) {
+      if (error instanceof Error && error.message === RUNNER_UNREACHABLE) {
+        setRunMessage(RUNNER_UNREACHABLE)
+        return false
+      }
       if (onlyEmpty) {
-        return
+        return true
       }
       const message =
         error instanceof Error
@@ -340,9 +349,15 @@ function App() {
           : 'Failed to reach local runner. Quit and relaunch Start BPCTool (or npm start).'
       setRunMessage(`Could not load runner defaults: ${message}`)
     }
+    return true
   }
 
+  // Bumped whenever the org URL or PAT changes, so a fetch still in flight for the
+  // previous connection doesn't record its lists against the new one.
+  const connectionGenRef = useRef(0)
+
   const setOrgUrl = (value) => {
+    connectionGenRef.current += 1
     setOrgUrlState(value)
     writeSession(SESSION_ORG_URL, value)
     setProjects([])
@@ -352,6 +367,7 @@ function App() {
   }
 
   const setPat = (value) => {
+    connectionGenRef.current += 1
     setPatState(value)
     writeSession(SESSION_PAT, value)
     setProjectsFetched(false)
@@ -417,14 +433,16 @@ function App() {
     projectName.trim() ? ` · project “${projectName.trim()}”` : '',
   ].join('')
 
+  const extensionCheckable = connectionReady && executionMode !== 'simulate'
+  const extensionStatus = extensionCheckable ? checkedExtensionStatus : 'unknown'
+  let extensionMessage = checkedExtensionMessage
+  if (!extensionCheckable) {
+    extensionMessage =
+      executionMode === 'simulate' ? 'Simulate mode skips Azure DevOps extension checks.' : ''
+  }
+
   useEffect(() => {
-    if (!connectionReady || executionMode === 'simulate') {
-      setExtensionStatus('unknown')
-      setExtensionMessage(
-        executionMode === 'simulate'
-          ? 'Simulate mode skips Azure DevOps extension checks.'
-          : '',
-      )
+    if (!extensionCheckable) {
       return undefined
     }
 
@@ -472,7 +490,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [connectionReady, effectiveOrgUrl, pat, executionMode])
+  }, [extensionCheckable, effectiveOrgUrl, pat])
 
   const cacheKey = useMemo(
     () => buildCacheKey(effectiveOrgUrl, processName, projectName),
@@ -506,6 +524,16 @@ function App() {
     ],
   )
 
+  const completedStepIds = useMemo(
+    () => (cacheKey ? migrateCompletedStepIds(completionCache[cacheKey] ?? []) : []),
+    [cacheKey, completionCache],
+  )
+
+  const plannedStepIds = useMemo(
+    () => resolveTargetSteps(runMode, selectedWorkflowId, completedStepIds),
+    [runMode, selectedWorkflowId, completedStepIds],
+  )
+
   const nameValidation = useMemo(
     () =>
       validateTargetNames({
@@ -516,6 +544,7 @@ function App() {
         confirmProcessUpdate,
         confirmProjectUpdate,
         requireProjectName: true,
+        targetStepIds: plannedStepIds,
       }),
     [
       processName,
@@ -524,17 +553,8 @@ function App() {
       updatePolicy,
       confirmProcessUpdate,
       confirmProjectUpdate,
+      plannedStepIds,
     ],
-  )
-
-  const completedStepIds = useMemo(
-    () => (cacheKey ? migrateCompletedStepIds(completionCache[cacheKey] ?? []) : []),
-    [cacheKey, completionCache],
-  )
-
-  const plannedStepIds = useMemo(
-    () => resolveTargetSteps(runMode, selectedWorkflowId, completedStepIds),
-    [runMode, selectedWorkflowId, completedStepIds],
   )
 
   const stepStatuses = useMemo(() => {
@@ -774,9 +794,13 @@ function App() {
     setProjectsFetched(false)
     setProjects([])
     setApiStatusText('Fetching projects...')
+    const generation = connectionGenRef.current
 
     try {
       const list = await fetchProjects(effectiveOrgUrl, pat.trim())
+      if (generation !== connectionGenRef.current) {
+        return
+      }
       setProjects(list)
       setProjectsFetched(true)
       setApiStatusText(
@@ -785,6 +809,9 @@ function App() {
       setRunMessage(`Fetched ${list.length} project${list.length === 1 ? '' : 's'} from Azure DevOps.`)
       addLog(`API: fetched ${list.length} projects`)
     } catch (error) {
+      if (generation !== connectionGenRef.current) {
+        return
+      }
       const message = error instanceof Error ? error.message : 'Failed to fetch projects'
       setProjectsFetched(false)
       setApiStatusText(message)
@@ -804,9 +831,13 @@ function App() {
     setProcessesFetched(false)
     setProcesses([])
     setApiStatusText('Fetching processes...')
+    const generation = connectionGenRef.current
 
     try {
       const list = await fetchProcesses(effectiveOrgUrl, pat.trim())
+      if (generation !== connectionGenRef.current) {
+        return
+      }
       setProcesses(list)
       setProcessesFetched(true)
       setApiStatusText(
@@ -815,6 +846,9 @@ function App() {
       setRunMessage(`Fetched ${list.length} process${list.length === 1 ? '' : 'es'} from Azure DevOps.`)
       addLog(`API: fetched ${list.length} processes`)
     } catch (error) {
+      if (generation !== connectionGenRef.current) {
+        return
+      }
       const message = error instanceof Error ? error.message : 'Failed to fetch processes'
       setProcessesFetched(false)
       setApiStatusText(message)
@@ -824,6 +858,64 @@ function App() {
       setFetchingProcesses(false)
     }
   }
+
+  // Existing processes/projects drive the policy checks and confirm boxes, so load them
+  // once the connection is usable and again after each live run (which may create them).
+  useEffect(() => {
+    if (!connectionReady || executionMode === 'simulate') {
+      return undefined
+    }
+    let cancelled = false
+    const orgUrlAtStart = effectiveOrgUrl
+    const token = pat.trim()
+    const timer = setTimeout(async () => {
+      setFetchingProjects(true)
+      setFetchingProcesses(true)
+      const [projectsResult, processesResult] = await Promise.allSettled([
+        fetchProjects(orgUrlAtStart, token),
+        fetchProcesses(orgUrlAtStart, token),
+      ])
+      setFetchingProjects(false)
+      setFetchingProcesses(false)
+      if (cancelled) {
+        return
+      }
+      const found = []
+      const failed = []
+      const reason = (result) =>
+        result.reason instanceof Error ? result.reason.message : String(result.reason)
+      if (projectsResult.status === 'fulfilled') {
+        setProjects(projectsResult.value)
+        setProjectsFetched(true)
+        const count = projectsResult.value.length
+        found.push(`${count} project${count === 1 ? '' : 's'}`)
+      } else {
+        setProjectsFetched(false)
+        failed.push(`projects (${reason(projectsResult)})`)
+      }
+      if (processesResult.status === 'fulfilled') {
+        setProcesses(processesResult.value)
+        setProcessesFetched(true)
+        const count = processesResult.value.length
+        found.push(`${count} process${count === 1 ? '' : 'es'}`)
+      } else {
+        setProcessesFetched(false)
+        failed.push(`processes (${reason(processesResult)})`)
+      }
+      const status = [
+        found.length ? `Connected. Found ${found.join(' and ')}.` : '',
+        failed.length ? `Could not load existing ${failed.join('; ')}.` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+      setApiStatusText(status)
+      addLog(`API: loaded existing targets automatically — ${status}`)
+    }, 600)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [connectionReady, executionMode, effectiveOrgUrl, pat, inventoryRefreshKey])
 
   const clearCompletionCache = () => {
     if (!cacheKey) {
@@ -1006,6 +1098,9 @@ function App() {
     const outcome = job.apply_result?.outcome ?? null
     setRunOutcome(outcome)
     const resultsNote = outcome ? ' See the results below.' : ''
+    if (!context.dryRun) {
+      setInventoryRefreshKey((key) => key + 1)
+    }
 
     if (applyOk) {
       // Never mark steps complete / record workbook apply for dry-run —
@@ -1072,7 +1167,7 @@ function App() {
       const message = error instanceof Error ? error.message : 'Unexpected runner error.'
       setRunMessage(
         message.startsWith('Job not found')
-          ? 'The previous runner job is no longer available (the runner was restarted).'
+          ? 'The previous runner job is no longer available (the runner was restarted, or it has finished 20 newer jobs since and keeps only the latest 20).'
           : `Stopped watching runner job: ${message}`,
       )
     } finally {
@@ -1080,11 +1175,27 @@ function App() {
     }
   }
 
+  const loadRunnerDefaultsRef = useRef(loadRunnerDefaults)
   useEffect(() => {
-    const timer = setTimeout(() => loadRunnerDefaults({ onlyEmpty: true }), 0)
-    return () => clearTimeout(timer)
+    loadRunnerDefaultsRef.current = loadRunnerDefaults
+  })
+
+  useEffect(() => {
     // Mount-only: prefill paths from the runner without overwriting user input.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // The runner may still be starting (first launch sets up Python), so keep trying.
+    let cancelled = false
+    let timer
+    const attempt = async (triesLeft) => {
+      const reached = await loadRunnerDefaultsRef.current({ onlyEmpty: true })
+      if (!reached && !cancelled && triesLeft > 0) {
+        timer = setTimeout(() => attempt(triesLeft - 1), 3000)
+      }
+    }
+    timer = setTimeout(() => attempt(60), 0)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [])
 
   useEffect(() => {
@@ -1120,7 +1231,7 @@ function App() {
     setRunMessage('Building plan preview from the workbooks (no Azure DevOps changes)...')
 
     try {
-      const response = await fetch('/api/plan/dry-run', {
+      const response = await runnerFetch('/api/plan/dry-run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1133,8 +1244,10 @@ function App() {
           update_policy: updatePolicy,
           confirm_process_update: confirmProcessUpdate,
           confirm_project_update: confirmProjectUpdate,
-          known_process_exists: targetAssessment.process.exists,
-          known_project_exists: targetAssessment.project.exists,
+          known_process_exists: processesFetched ? targetAssessment.process.exists : null,
+          known_project_exists: projectsFetched ? targetAssessment.project.exists : null,
+          root_area_path: rootAreaPath.trim() || projectName.trim(),
+          include_deprecated_deleted: includeDeprecatedDeleted,
         }),
       })
 
@@ -1253,13 +1366,14 @@ function App() {
             updatePolicy,
             confirmProcessUpdate,
             confirmProjectUpdate,
-            knownProcessExists: targetAssessment.process.exists,
-            knownProjectExists: targetAssessment.project.exists,
+            knownProcessExists: processesFetched ? targetAssessment.process.exists : null,
+            knownProjectExists: projectsFetched ? targetAssessment.project.exists : null,
             rootAreaPath: runConfig.rootAreaPath,
             mode: 'apply',
             applyDryRun: dryRun,
             steps: plannedSteps.length ? plannedSteps : null,
             convertMarkdownToHtml,
+            includeDeprecatedDeleted,
             catalogParallelWorkers: parseBoundedInt(threads, 4),
             outputRoot: outputRootChoice,
           }),
@@ -1405,26 +1519,34 @@ function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <h1>BPC Azure DevOps React Runner</h1>
+        <h1>BPCTool</h1>
         <p>
-          Process and page layout finish first; project creation runs only after those
-          complete. Existing process/project selections are verified before updates, and
-          later spreadsheets can apply as process-template deltas.
+          Sets up the Business Process Catalog in Azure DevOps from the Excel template and
+          catalog workbooks.
         </p>
+        <ol className="header-steps">
+          <li>Connect with your org URL and PAT.</li>
+          <li>Name the process and project.</li>
+          <li>Pick the steps to run.</li>
+          <li>
+            Check with <strong>Preview plan</strong> and a <strong>Rehearsal</strong>, then run
+            live.
+          </li>
+        </ol>
         <p className="mode-banner">
-          Execution mode:{' '}
+          Mode:{' '}
           <strong>
             {executionMode === 'runner'
               ? 'Runner'
               : executionMode === 'api'
                 ? 'API'
-                : 'simulation'}
+                : 'Simulation'}
           </strong>
           {executionMode === 'runner'
-            ? ' — local Excel→IR→apply engine (started automatically with the app).'
+            ? ' — runs on this computer (started with the app).'
             : executionMode === 'api'
-              ? ' — live ADO reads via /ado-proxy (credential proof + inventory checks).'
-              : ' — local timed stubs; use Runner mode for real apply.'}
+              ? ' — only reads Azure DevOps (connection and inventory checks).'
+              : ' — practice mode; nothing is sent to Azure DevOps. Switch to Runner to apply.'}
         </p>
       </header>
 
@@ -1468,8 +1590,8 @@ function App() {
         }
       >
         <p className="section-lead">
-          Type the names to create. Optionally fetch existing inventory in the connection
-          profile to detect collisions; suggestions appear as you type.
+          Type the names to create. Existing projects and processes load from the connection
+          to detect collisions; suggestions appear as you type.
         </p>
         <div className="grid-2">
           <label>
@@ -1855,7 +1977,8 @@ function App() {
               Defaults to the project root (
               <code>{derivedRootAreaPath(projectName) || 'project name'}</code>
               ) from section 2. Area path children come from the Excel Area paths
-              sheet. Edit only to override.
+              sheet. Edit only to nest them below the project (e.g. Project\BPC); catalog
+              Area Paths move under it too.
             </small>
           </label>
           {executionMode !== 'runner' ? (
@@ -1885,7 +2008,7 @@ function App() {
             {executionMode === 'runner' ? (
               <small className="field-hint">
                 {dryRun
-                  ? 'On: Rehearse selected flow runs every selected step and writes preview files (rehearsal-summary.html, import-prevalidate.csv, import-preview.csv) but makes no Azure DevOps calls. Steps show Skipped.'
+                  ? 'On: Rehearse selected flow runs every selected step and writes preview files (rehearsal-summary.html, import-prevalidate.csv, import-preview.csv) without changing Azure DevOps. Catalog Import only reads: if the project exists, it reports what differs from the workbook (import-changes.csv). Steps show Skipped.'
                   : 'Off: Run selected flow (live) creates/updates the process, layouts, project, teams, backlog, and catalog in the connected org.'}
               </small>
             ) : null}
@@ -1903,6 +2026,21 @@ function App() {
             <small className="field-hint">
               Default preserves markdown and sets
               multilineFieldsFormat=Markdown. Enable only to store HTML instead.
+            </small>
+          </div>
+          <div className="stack-field span-6">
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={includeDeprecatedDeleted}
+                onChange={(event) => setIncludeDeprecatedDeleted(event.target.checked)}
+                disabled={isRunning}
+              />
+              Import Deprecated / Deleted rows
+            </label>
+            <small className="field-hint">
+              Off: Catalog Import skips rows whose Catalog status is Deprecated or Deleted, and the
+              rows below them (listed in skipped-deprecated-deleted.csv).
             </small>
           </div>
           <div className="input-list span-12">

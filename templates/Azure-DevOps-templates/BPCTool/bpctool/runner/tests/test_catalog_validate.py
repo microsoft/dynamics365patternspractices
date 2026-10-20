@@ -401,6 +401,35 @@ def test_unknown_area_path_is_removed_and_reported_with_row() -> None:
     assert (issue.kind, issue.source_file, issue.source_row) == ("invalid_area_path", "bpc.xlsx", 7)
 
 
+def test_root_area_path_override_moves_catalog_areas_under_it() -> None:
+    plain = _draft("a", **{"System.AreaPath": "NewProj\\Business process catalog"})
+    other = _draft("b", **{"System.AreaPath": "OldProj\\Functional areas\\Finance"})
+    already = _draft("c", **{"System.AreaPath": "NewProj\\Imported\\Functional areas"})
+    manual = _draft("d", **{"System.AreaPath": "NewProj\\Manual area"})
+    result = prevalidate_catalog_drafts(
+        [plain, other, already, manual],
+        _ir_with_areas(),
+        _mapping(),
+        extra_area_paths=["NewProj\\Manual area", "NewProj\\Imported\\Functional areas"],
+        area_root="NewProj\\Imported",
+    )
+    assert plain.fields["System.AreaPath"] == "NewProj\\Imported\\Business process catalog"
+    assert other.fields["System.AreaPath"] == "NewProj\\Imported\\Functional areas\\Finance"
+    assert already.fields["System.AreaPath"] == "NewProj\\Imported\\Functional areas"
+    assert manual.fields["System.AreaPath"] == "NewProj\\Manual area"
+    assert result.counts == {"area_root_applied": 1, "area_path_project_renamed": 1}
+    renamed = next(issue for issue in result.issues if issue.kind == "area_path_project_renamed")
+    assert renamed.detail == "'OldProj' → 'NewProj', placed under Root area path 'NewProj\\Imported'"
+
+
+def test_root_area_path_equal_to_project_or_unset_changes_nothing() -> None:
+    for root in ("NewProj", "", None):
+        draft = _draft("a", **{"System.AreaPath": "NewProj\\Business process catalog"})
+        result = prevalidate_catalog_drafts([draft], _ir_with_areas(), _mapping(), area_root=root)
+        assert draft.fields["System.AreaPath"] == "NewProj\\Business process catalog", root
+        assert not result.issues, root
+
+
 def test_existing_project_area_is_accepted() -> None:
     draft = _draft("a", **{"System.AreaPath": "NewProj\\Manual area"})
     result = prevalidate_catalog_drafts(

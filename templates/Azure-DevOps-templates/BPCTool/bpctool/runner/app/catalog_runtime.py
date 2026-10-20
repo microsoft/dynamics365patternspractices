@@ -65,7 +65,7 @@ def _never_cancel() -> bool:
     return False
 
 
-def _read_id_map_rows(path: Path) -> list[dict[str, str]]:
+def read_id_map_rows(path: Path) -> list[dict[str, str]]:
     if not path.is_file():
         return []
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -75,7 +75,7 @@ def _read_id_map_rows(path: Path) -> list[dict[str, str]]:
 def load_id_map(path: Path) -> dict[str, int]:
     """Load Key → ADO work item id from ado-id-map.csv (resume)."""
     mapping: dict[str, int] = {}
-    for row in _read_id_map_rows(path):
+    for row in read_id_map_rows(path):
         key = str(row.get("Key") or "").strip()
         raw_id = str(row.get("WorkItemId") or "").strip()
         if not key or not raw_id:
@@ -90,7 +90,7 @@ def load_id_map(path: Path) -> dict[str, int]:
 def load_id_map_parents(path: Path) -> dict[str, int]:
     """Key → ParentId for rows created with the parent relation in the payload."""
     parents: dict[str, int] = {}
-    for row in _read_id_map_rows(path):
+    for row in read_id_map_rows(path):
         key = str(row.get("Key") or "").strip()
         raw_parent = str(row.get("ParentId") or "").strip()
         if not key or not raw_parent:
