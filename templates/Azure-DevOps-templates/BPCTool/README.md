@@ -24,8 +24,8 @@ Because BPCTool is release-independent, it can be used with the latest Microsoft
 
 ## Requirements
 
-- **Node.js 20+** and **Python 3.11+** on the machine that runs BPCTool.
-- An Azure DevOps organization and a **PAT** with rights to manage processes, projects, and work items.
+- **Node.js 20.19+ or 22.12+** (Vite 8) and **Python 3.11+** on the machine that runs BPCTool.
+- An Azure DevOps organization and a **PAT**. Full setup needs Work Items *Read, write, & manage*, Project and Team *Read, write, & manage* and Extensions *Read*; a catalog-only import or a rehearsal needs less — see [PAT scopes](./bpctool/USER_GUIDE.md#pat-scopes).
 - The [Multivalue control (Microsoft DevLabs)](https://marketplace.visualstudio.com/items?itemName=ms-devlabs.vsts-extensions-multivalue-control) extension on the org — required for Multi-select fields and for the process / layout / project steps. The Connection panel checks for it and can install it when the PAT allows; otherwise an org admin installs it.
 - The current release's **ADO template guideline** `.xlsx` and catalog workbooks. They are **not** bundled.
 
@@ -33,7 +33,7 @@ Because BPCTool is release-independent, it can be used with the latest Microsoft
 
 ## Install and launch
 
-The app lives in [bpctool/](./bpctool/).
+The app lives in [`bpctool/`](./bpctool/).
 
 - **macOS:** double-click `bpctool/Start BPCTool.command`
 - **Windows:** double-click `bpctool/Start BPCTool.bat`
@@ -44,7 +44,7 @@ From a terminal instead:
 
 ```bash
 cd bpctool
-npm run setup   # once: node_modules + .venv
+npm run setup   # once: node_modules + .venv (npm start also creates .venv if missing)
 npm start       # UI + auto-started runner (opens the browser)
 ```
 
@@ -52,13 +52,13 @@ npm start       # UI + auto-started runner (opens the browser)
 
 ## Using BPCTool
 
-1. **Connection** — enter the org URL (`https://dev.azure.com/{org}`, `{org}.visualstudio.com`, or just the org name) and PAT (kept for the browser session only). Confirm **Multivalue: installed**, or use **Check** / **Install**.
+1. **Connection** — enter the org URL (`https://dev.azure.com/{org}`, `{org}.visualstudio.com`, or just the org name) and PAT (kept in the browser tab's session storage, cleared when the tab closes). Existing projects and processes load automatically. Confirm **Multivalue: installed**, or use **Check** / **Install**.
 2. **Execution mode** — **Runner** (default).
 3. **Process & project names** — enter names, an optional project description, and the update policy.
 4. **Workflow selection** — pick a run mode and a step card (see [Modes](#modes)).
 5. **Run configuration** — confirm the pre-filled **Template workbook path**, **Catalog source folder** (one release folder), and **Workbook version**; use **Browse…** or **Load runner defaults** to change them. Optionally choose a **Run output folder**.
 6. **Preview plan** — reads the workbooks and shows the steps, counts, warnings, and catalog data checks. It never contacts Azure DevOps.
-7. Optional: tick **Rehearsal only** → **Rehearse selected flow** runs every selected step and writes the preview files, still without changing Azure DevOps.
+7. Optional: tick **Rehearsal only** → **Rehearse selected flow** runs every selected step and writes the preview files, still without changing Azure DevOps. If the project already exists, it also reports which existing work items differ from the workbook.
 8. Untick **Rehearsal only** → **Run selected flow (live)**. The red note under the buttons names the org, process, and project that will change.
 9. When the run finishes, the **results card** shows the headline, what needs attention, and buttons to open the report and download the CSVs.
 
@@ -67,7 +67,7 @@ Defaults:
 - Folder root `~/BPC Files` (`BPCTOOL_CATALOG` to change); the newest release subfolder is selected.
 - Template: newest `ADO template guideline*.xlsx` in the release folder (or Browse… / `BPCTOOL_TEMPLATE`).
 - Workbook version: the release folder name (e.g. `2026-Q4`). A label only — it is never sent to Azure DevOps. It appears in the plan and report fingerprint, and a new label tells the UI a new spreadsheet is being applied to an existing process ([USER_GUIDE §10](./bpctool/USER_GUIDE.md#10-spreadsheet-deltas--fingerprints)).
-- Root area path: the project name.
+- Root area path: the project name. Set a path below the project (e.g. `Contoso-BPC\BPC`) to nest the template areas and catalog Area Paths under it.
 - `Your Project Name Here` in any workbook area or iteration path is replaced with the project name from the form, and reported in the results.
 - Run output folder: `BPCTOOL_OUTPUT_DIR`, else `bpctool/runner-out/`.
 
@@ -77,17 +77,17 @@ Step-by-step detail, every option, and troubleshooting: [USER_GUIDE](./bpctool/U
 
 Sample UI in Runner mode (dark theme). Paths and names are illustrative.
 
-**Connection** — org URL, PAT, Multivalue check
+**Connection** — org URL, PAT (kept for this browser tab only), Multivalue check
 
-![Connection panel with org URL, PAT and the Multivalue extension check](./bpctool/docs/images/ui-connection.png)
+![Connection panel with org URL, PAT kept for this tab only, the Multivalue extension check and the note on PAT storage and scopes](./bpctool/docs/images/ui-connection.png)
 
 **Workflow selection** — four run modes and seven step cards. Here **Run from selected step onward** starts at Process Template, and every card in the run is marked.
 
 ![Run mode options and seven workflow cards marked Starts here and In this run](./bpctool/docs/images/ui-workflow.png)
 
-**Run configuration** — template workbook, catalog release folder, and the run output folder (the `<org>_<project>` subfolder is shown under it)
+**Run configuration** — template workbook, catalog release folder, and the run output folder (the `<org>_<project>` subfolder is shown under it, with the `-<code>` name used when another project's results already have that name)
 
-![Template, catalog folder and run output folder pickers, workbook version and catalog workers](./bpctool/docs/images/ui-run-config.png)
+![Template, catalog folder and run output folder pickers with the results subfolder hint, workbook version and catalog workers](./bpctool/docs/images/ui-run-config.png)
 
 **Live run** — the button reads **Run selected flow (live)** and a red note names what will change
 
@@ -101,9 +101,9 @@ Sample UI in Runner mode (dark theme). Paths and names are illustrative.
 
 ![Plan preview with the project name notice and catalog data checks](./bpctool/docs/images/ui-preview-plan.png)
 
-**Results card** — shown when a run finishes: headline, substitutions, what needs attention, steps, and links to the report and CSVs
+**Results card** — shown when a run finishes: headline, what needs attention, links to the report and CSVs, and (for a rehearsal against an existing project) the changes since the last import
 
-![Rehearsal results card with headline, project name notice, what needs attention and steps](./bpctool/docs/images/ui-results-card.png)
+![Rehearsal results card with headline, what needs attention and Changes since the last import](./bpctool/docs/images/ui-results-card.png)
 
 ## Folder layout
 
@@ -124,9 +124,9 @@ Every catalog workbook in the selected folder is imported, so don't mix releases
 
 1. **Process template** — work item types, fields, picklists (Multi-select → suggested lists); disables types the workbook disables (e.g. Epic / Feature / User story)
 2. **Page layouts** — before any project; DevLabs Multivalue control for Multi-select fields
-3. **Project** — create or bind, with an optional description
-4. **Teams & areas** — multi-path team assignments
-5. **Backlog & iterations** — levels from the **Backlogs** sheet, WIT mapping, team iterations
+3. **Project** — create or bind, with an optional description; an existing project must use the selected process
+4. **Teams & areas** — multi-path team assignments (with *Include sub areas* from the Teams sheet), optionally under a root area below the project
+5. **Backlog & iterations** — levels from the **Backlogs** sheet, WIT mapping, team iterations (teams in parallel)
 6. **Catalog import** — every matching workbook in the catalog folder; parallel, resumable, with parent-link backfill
 7. **Report** — HTML/JSON summary
 
@@ -147,7 +147,7 @@ Every catalog workbook in the selected folder is imported, so don't mix releases
 
 Project and later steps wait until Process Template and Page Layout have completed (except in Selected step only).
 
-**Preview plan / Rehearsal only / live:** Preview plan only reads the workbooks. Rehearsal only runs the selected steps and writes preview files without changing Azure DevOps. A live run applies the changes. Comparison: [USER_GUIDE §5](./bpctool/USER_GUIDE.md#preview-plan-vs-rehearsal-only-vs-live-run).
+**Preview plan / Rehearsal only / live:** Preview plan only reads the workbooks. Rehearsal only runs the selected steps and writes preview files without changing Azure DevOps; its Catalog Import step only reads, to compare the workbook with an existing project. A live run applies the changes; it checks Azure DevOps itself for an existing process or project before applying the update policy, and only one rehearsal or live run per org + project can run at a time. Comparison: [USER_GUIDE §5](./bpctool/USER_GUIDE.md#preview-plan-vs-rehearsal-only-vs-live-run).
 
 **Execution modes:** **Runner** (default) is the full engine. **API** does live Azure DevOps reads only; **Simulate** uses local stubs for UI testing.
 
@@ -164,15 +164,21 @@ Each run ends with a **results card** in the UI: a headline, a highlighted line 
 | `ado-id-map.csv`             | Catalog key → work item ID. Re-runs resume from it — keep it                                                                         |
 | `backfill-links-report.csv`  | Parent-link backfill statuses                                                                                                        |
 | `import-preview.csv`         | Sample of the catalog rows as they will be sent                                                                                      |
+| `import-changes.csv`         | Rehearsal against an existing project: every difference between the workbook and the work items already there, and rows a live run would duplicate |
+| `skipped-deprecated-deleted.csv` | Catalog rows not imported because their Catalog status (or a parent row's) is Deprecated or Deleted |
+| `bpctool-target.json`        | The organization and project this folder belongs to. Another project whose name gives the same folder name gets its own `<org>_<project>-<8 characters>` folder |
 
 
-JSON versions (`*-summary.json`, `import-failures.json`, `import-prevalidate.json`) carry the same data and a shared run ID. Catalog import is create-only for fields; a re-run skips items already in `ado-id-map.csv`. More: [USER_GUIDE §11 Outputs](./bpctool/USER_GUIDE.md#11-outputs-and-artifacts).
+CSV reports show text starting with `=`, `+`, `-` or `@` with a leading `'` so Excel can't run it as a formula. Reports contain catalog content and work item IDs: keep them with the workbooks, don't post them publicly, and delete folders you no longer need (keep `ado-id-map.csv` while the project may be re-imported).
+
+JSON versions (`*-summary.json`, `import-failures.json`, `import-prevalidate.json`, `import-changes.json`) carry the same data and a shared run ID. Catalog import is create-only for fields; a re-run skips items already in `ado-id-map.csv`, and a rehearsal lists the existing items whose values differ. More: [USER_GUIDE §11 Outputs](./bpctool/USER_GUIDE.md#11-outputs-and-artifacts).
 
 ## How workbook data is handled
 
 - **Backlogs** sheet: renames/creates backlog levels, sets default work item types, assigns enabled types from **Work item types**. Disabled types stay disabled in Azure DevOps.
 - **Multi-select** fields (Application family, Products, Industries, …) use suggested picklists plus the Multivalue control, so values like `A; B` import. Only fields with **Multi-select field = Yes** in the template Fields sheet get this; `A; B` in any other picklist field (e.g. **Module** in the July template) is removed and reported with that fix.
 - **Catalog hierarchy** follows the **Title 1..N** columns (the ADO CSV outline), not Process sequence ID. Rows are tracked by Process sequence ID; a row that repeats an earlier row's ID is still imported with that ID, and tracked in `ado-id-map.csv` as `<id>#<Microsoft ID>`.
+- **Deprecated / Deleted rows** (Catalog status) and the rows below them are skipped by default, as the Microsoft importer does — 700 rows in the July workbooks. Tick **Import Deprecated / Deleted rows** in Run configuration to import them.
 - **Data checks** before every catalog import (and in Preview plan): project name fixes for Area / Iteration Path, area paths / States / picklist values Azure DevOps would reject are removed, text over 255 characters is shortened, Fields-sheet defaults are applied, picklist casing is aligned. Each change is listed in `import-prevalidate.csv`.
 - **Rich text:** HTML from Excel is kept; Markdown is kept by default (sent with `multilineFieldsFormat=Markdown`) or converted with **Convert Markdown large-text fields to HTML**. An empty Description is omitted. Details: [USER_GUIDE §8](./bpctool/USER_GUIDE.md#8-rich-text-html-vs-markdown).
 - **Long runs:** catalog progress bar with ETA, **Cancel run** stops cleanly, and reloading the page reattaches to a running job.
@@ -184,10 +190,10 @@ JSON versions (`*-summary.json`, `import-failures.json`, `import-prevalidate.jso
 
 | Doc                                                                                        | Purpose                                                                                                                                                         |
 | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Quick reference](./bpctool/docs/QUICK_REFERENCE.md)                                       | One page: start, PAT scopes, run order, which button changes what, run modes, results files, common problems, developer commands                                |
 | [USER_GUIDE](./bpctool/USER_GUIDE.md)                                                      | Full usage: install, every screen and option, Excel sheets, outputs, local API, troubleshooting                                                                 |
 | [CHANGELOG](./bpctool/CHANGELOG.md)                                                        | Release history                                                                                                                                                 |
 | [Workflow & reference-script comparison](./bpctool/docs/workflow-and-script-comparison.md) | Engine steps, quarterly releases, X vs H field applicability, catalog parallel/resume/backfill, incremental re-runs, Microsoft reference scripts vs BPCTool     |
-| [Process analysis (MSBPC snapshot)](./bpctool/docs/reference/MSBPC-process-analysis.md)    | The process as created from one template release (43 WITs, generated 2026-08-09) — useful when comparing layouts, states, and fields; later releases may differ |
 
 
 
@@ -199,7 +205,7 @@ bpctool/
   src/                  React UI (Vite)
   runner/               FastAPI runner: Excel → IR → plan → apply
   scripts/              Launcher env + Vite local-runner plugin
-  docs/                 Comparison doc, process snapshot, screenshots
+  docs/                 Quick reference, comparison doc, screenshots
   Start BPCTool.*       One-click launchers
   bpctool.env.example   Optional folder settings (copy to bpctool.env)
   runner-out/           Default run outputs (gitignored)
@@ -207,14 +213,18 @@ bpctool/
 
 ```bash
 cd bpctool
-npm start                            # UI + runner with --reload
+npm start                            # UI + runner (relaunch to load code changes)
+npm run dev                          # same, runner with --reload (a code change restarts it mid-run)
 npm run runner                       # runner API only (127.0.0.1:8787)
 npm test                             # UI tests (vitest)
-cd runner && ../.venv/bin/pytest -q  # runner tests
+npm run runner:install-dev           # once: pytest into .venv
+npm run runner:test                  # runner tests
 npm run lint && npm run build
 ```
 
-The runner listens on `127.0.0.1:8787` and the UI proxies it as `/api/*`: `GET /health`, `GET /defaults`, `POST /plan/dry-run`, `POST /ir/parse`, `POST /jobs`, `GET /jobs/{id}?since=N`, `POST /jobs/{id}/cancel`, `GET /outputs/{folder}/{file}`. Request fields and curl examples: [USER_GUIDE §12](./bpctool/USER_GUIDE.md#12-local-runner-api).
+These commands work the same in Terminal, PowerShell and Command Prompt: the `runner*` scripts use `.venv/bin` on macOS / Linux and `.venv\Scripts` on Windows.
+
+The runner listens on `127.0.0.1:8787` and the UI proxies it as `/api/*`: `GET /health`, `GET /defaults`, `POST /plan/dry-run`, `POST /ir/parse`, `POST /jobs`, `GET /jobs/{id}?since=N`, `POST /jobs/{id}/cancel`, `GET /outputs/{folder}/{file}`. It accepts only `Host: 127.0.0.1` / `localhost` and sends no CORS headers. Request fields and curl examples: [USER_GUIDE §12](./bpctool/USER_GUIDE.md#12-local-runner-api).
 
 ## License
 

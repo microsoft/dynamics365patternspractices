@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import csv
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from .catalog_import import WorkItemDraft
+from .csv_safe import SafeWriter
 from .excel_ir import replace_project_placeholder
 from .mapping import TemplateMapping, normalize
 from .richtext import normalize_field_value
@@ -757,7 +757,7 @@ def write_prevalidate_csv(result: PrevalidateResult, path: Path) -> int:
     )
     # utf-8-sig so Excel detects UTF-8 (arrows, accented names).
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.writer(handle)
+        writer = SafeWriter(handle)
         writer.writerow(PREVALIDATE_CSV_COLUMNS)
         for issue in rows:
             text = ISSUE_TEXT.get(issue.kind, {})

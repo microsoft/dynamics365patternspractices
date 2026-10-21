@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import html
 import json
+from urllib.parse import quote
 
 import pytest
 from fastapi import HTTPException
@@ -167,7 +169,7 @@ def test_outputs_endpoint_serves_from_user_selected_root(tmp_path, monkeypatch) 
     response = output_file("org_Proj", "import-failures.csv", root=str(chosen))
     assert str(response.path) == str((folder / "import-failures.csv").resolve())
     page = output_file("org_Proj", "bpc-ado-setup-summary.html", root=str(chosen)).body.decode()
-    assert f'href="import-failures.csv?root={chosen}"' in page
+    assert f'href="import-failures.csv?root={html.escape(quote(str(chosen)))}"' in page
     assert 'href="https://example.com/"' in page
     with pytest.raises(HTTPException):
         output_file("org_Proj", "bpc-ado-setup-summary.html", root=None)

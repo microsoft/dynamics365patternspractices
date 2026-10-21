@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from app.apply_engine import default_output_dir
+from app.output_folder import default_output_dir
 from app.excel_ir import catalog_folder_warnings, catalog_kind
 from app.paths import bpc_files_root, output_root, resolve_release_folder
 from app.planner import _release_mismatch_warning
@@ -69,7 +69,7 @@ def test_user_selected_output_root_keeps_org_project_folder(monkeypatch, tmp_pat
     )
 
 
-def test_output_root_must_be_absolute() -> None:
+def test_output_root_must_be_absolute(tmp_path) -> None:
     import pytest
     from pydantic import ValidationError
 
@@ -82,7 +82,8 @@ def test_output_root_must_be_absolute() -> None:
         "excel_file": "/tmp/t.xlsx",
     }
     assert DryRunRequest(**base, output_root="  ").output_root is None
-    assert DryRunRequest(**base, output_root="/data/out").output_root == "/data/out"
+    absolute = str(tmp_path / "out")
+    assert DryRunRequest(**base, output_root=absolute).output_root == absolute
     with pytest.raises(ValidationError):
         DryRunRequest(**base, output_root="relative/out")
 

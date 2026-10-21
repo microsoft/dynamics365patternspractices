@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import re
 import time
-from pathlib import Path
 from typing import Any, Callable
 
 from .ado_client import AdoClient, AdoError, ReadOnlyAdoClient
 from .excel_ir import build_ir
 from .models import ApplyResult, DryRunRequest
-from .org_url import normalize_ado_org_url, parse_ado_org_url
-from .paths import output_root
+from .org_url import normalize_ado_org_url
+from .output_folder import default_output_dir, resolve_output_dir, settle_output_dir
 from .planner import STEP_ORDER, build_dry_run_plan
 from .run_outcome import project_name_notice
 from .timing import format_duration_ms, summarize_timings
@@ -31,18 +29,6 @@ Emit = Callable[[dict[str, Any]], None]
 
 class RunCancelled(Exception):
     """Raised at a safe checkpoint after the user cancels a job."""
-
-
-def _safe_part(value: str) -> str:
-    slug = re.sub(r"[^A-Za-z0-9._-]+", "_", (value or "").strip())
-    return slug.strip("._-") or "ado"
-
-
-def default_output_dir(org_url: str, project_name: str, root: str | None = None) -> Path:
-    parsed = parse_ado_org_url(org_url)
-    org = parsed.org if parsed.ok else "org"
-    base = Path(root).expanduser() if (root or "").strip() else output_root()
-    return base / _safe_part(f"{org}_{project_name}")
 
 
 def run_apply(
@@ -101,7 +87,8 @@ def run_apply(
         except ValueError:
             change_reader = None
 
-    output_dir = default_output_dir(org_url, request.project_name, request.output_root)
+    output_dir = resolve_output_dir(org_url, request.project_name, request.output_root)
+    default_folder_name = default_output_dir(org_url, request.project_name, request.output_root).name
     step_results: dict[str, Any] = {}
 
     def _write_summary(error: str | None, cancelled: bool) -> dict[str, Any] | None:
@@ -200,12 +187,25 @@ def run_apply(
             timings=[],
         )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if output_dir.name != default_folder_name:
+        _emit(
+            {
+                "type": "info",
+                "message": (
+                    f"Results folder '{default_folder_name}' belongs to another project "
+                    f"with a similar name; this project's results go to '{output_dir.name}'."
+                ),
+            }
+        )
 
     process_id: str | None = None
 
     planned = {step["id"]: step for step in plan.steps}
     selected = step_filter or STEP_ORDER
+    catalog_runs = "catalog" in selected and (planned.get("catalog") or {}).get("planned_action") not in {
+        None,
+        "skip",
+    }
 
     _emit({"type": "apply-started", "message": f"Starting {'dry-run apply' if dry_run else 'apply'}"})
     template_notice = project_name_notice(
@@ -217,6 +217,17 @@ def run_apply(
         _emit({"type": "info", "message": template_notice})
 
     try:
+        # Before any step, so a full run doesn't set everything up and then stop at Catalog Import.
+        output_dir = settle_output_dir(
+            output_dir,
+            client or change_reader,
+            org_url,
+            request.project_name,
+            root=request.output_root,
+            catalog_runs=catalog_runs,
+            emit=lambda message: _emit({"type": "info", "message": message}),
+        )
+
         # Live process/layout/project requires DevLabs Multivalue extension (UI also preflights).
         setup_steps = {"process", "layout", "project"}
         needs_multivalue = any(

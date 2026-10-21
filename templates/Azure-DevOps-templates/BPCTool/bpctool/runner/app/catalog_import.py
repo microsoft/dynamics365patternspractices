@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import csv
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .csv_safe import SafeWriter
 from .excel_ir import _cell, catalog_sheet_rows, is_catalog_source_file
 from .mapping import TemplateMapping, normalize
 from .richtext import normalize_field_value, normalize_rich_text
@@ -111,7 +111,7 @@ def split_retired_drafts(drafts: list[WorkItemDraft]) -> tuple[list[WorkItemDraf
 
 def write_skipped_csv(skipped: list[SkippedDraft], path: Path) -> None:
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.writer(handle)
+        writer = SafeWriter(handle)
         writer.writerow(
             ["Key", "Work item type", "Title", "Catalog status", "Why skipped", "Source file", "Source row"]
         )

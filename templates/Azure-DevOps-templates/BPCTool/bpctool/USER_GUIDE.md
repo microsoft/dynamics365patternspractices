@@ -2,7 +2,7 @@
 
 This guide covers requirements, installation, step-by-step usage, architecture, API, and troubleshooting for the Business Process Catalog (BPC) Azure DevOps setup tool.
 
-For a short overview, see the [README](../README.md). For release history, see [CHANGELOG.md](./CHANGELOG.md).
+For a short overview, see the [README](../README.md); for a one-page cheat sheet, the [Quick reference](./docs/QUICK_REFERENCE.md). For release history, see [CHANGELOG.md](./CHANGELOG.md).
 
 ![BPCTool at a glance: what you need, the seven steps, and what you get](./docs/images/bpctool-overview.svg)
 
@@ -34,7 +34,7 @@ Excel remains the authoring format. A local FastAPI runner parses workbooks into
 
 | Component | Requirement |
 |-----------|-------------|
-| Node.js | 20+ recommended (Vite 8) |
+| Node.js | 20.19+ or 22.12+ (required by Vite 8) |
 | npm | Comes with Node |
 | Python | 3.11+ (3.12–3.14 tested) |
 | OS | macOS / Windows / Linux with local filesystem access to Excel files |
@@ -44,9 +44,22 @@ Excel remains the authoring format. A local FastAPI runner parses workbooks into
 | Item | Notes |
 |------|-------|
 | Organization URL | `https://dev.azure.com/{org}`, `https://{org}.visualstudio.com`, or bare `{org}` (normalized to `https://dev.azure.com/{org}`) |
-| PAT | Personal Access Token with scopes sufficient to manage processes, projects, work items, and teams. Typically: **Work Items (Read & Write)**, **Project and Team (Read & Write)**, **Identity (Read)**. Process customization may require organization-level permissions. To **install** the Multivalue extension from the UI, the account/PAT must be able to manage organization extensions (often org owner/admin). A **Rehearsal only** run needs only read access (Project and Team Read, Work Items Read) for its change report. |
-| Permissions | Ability to create inherited processes and projects in the target org |
+| PAT | Personal Access Token with the scopes for what you run — see [PAT scopes](#pat-scopes) below |
+| Permissions | Ability to create inherited processes and projects in the target org (a PAT scope never grants more than the account's own permissions) |
 | **Multivalue extension (required)** | [Multivalue control (Microsoft DevLabs)](https://marketplace.visualstudio.com/items?itemName=ms-devlabs.vsts-extensions-multivalue-control) (`ms-devlabs.vsts-extensions-multivalue-control`) **must** be installed and enabled on the organization before process template, page layout, and project setup. Connection auto-checks; Run prompts to install if missing. Without it, those steps are blocked. |
+
+### PAT scopes
+
+Create the PAT with **Custom defined** scopes and pick the smallest row that covers your run:
+
+| Run | Work Items | Project and Team | Extensions |
+|-----|------------|------------------|------------|
+| **Rehearsal only** (change report against an existing project) | Read | Read | Read (Connection check only) |
+| **Catalog Import only** into an existing project | Read & write | Read | — |
+| **Full setup** (process, layout, project, teams, backlog, catalog) | Read, write, & manage | Read, write, & manage | Read |
+| Also **install the Multivalue extension** from the Connection panel | — | — | Read & manage |
+
+Why: creating the inherited process, its work item types, fields, form layout and backlog levels needs Work Items *Read, write, & manage*; creating the project and teams needs Project and Team *Read, write, & manage*; area/iteration paths, team settings and work items need Work Items *Read & write*; the Multivalue check before the process, layout and project steps reads installed extensions. Identity scopes are not used. If you already ran Full setup and only re-import the catalog, use the Catalog Import row.
 
 ### Input files
 
@@ -74,6 +87,7 @@ Microsoft ships a new template + catalog set each quarter. Keep each release in 
   _runner-out/                                optional BPCTOOL_OUTPUT_DIR (see below)
       <org>_<project>/
         ado-id-map.csv                        KEEP — prevents duplicate catalog items
+        bpctool-target.json                   which org + project this folder belongs to
         bpc-ado-setup-summary.html, import-failures.csv, …
 ```
 
@@ -93,6 +107,18 @@ Microsoft ships a new template + catalog set each quarter. Keep each release in 
 4. Template = `BPCTOOL_TEMPLATE`, else the newest `ADO template guideline*.xlsx` in the release folder.
 
 **Run outputs** go to `<run output folder>/<org>_<project>/`. Pick the folder in **Run configuration → Run output folder** (Browse…; remembered in this browser). Left empty, it uses `BPCTOOL_OUTPUT_DIR`, else `bpctool/runner-out`. Because `runner-out` is inside the app folder, replacing the app folder during an upgrade deletes it — choose a folder outside the app (e.g. `~/BPC Files/_runner-out`), or copy `runner-out/` across when upgrading. When you switch folders, move existing `<org>_<project>/` folders with you: `ado-id-map.csv` in there is what stops a Catalog re-run from creating duplicates.
+
+**One results folder per project.** Characters other than letters, digits, `.`, `_` and `-` become `_` in the folder name, so two projects can map to the same name (`Finance Team` and `Finance_Team` both give `contoso_Finance_Team`). Each results folder records the organization and project it belongs to in `bpctool-target.json`; a different project with the same folder name gets its own `<org>_<project>-<8 characters>` folder, and the run log says so. Runs whose folders would have the same name don't run at the same time.
+
+Before any step, a run with a PAT reads up to 20 of the work items listed in the folder's `ado-id-map.csv` from Azure DevOps:
+
+| What it finds | What happens |
+|---------------|--------------|
+| No `ado-id-map.csv` yet, or the items are in this project | The folder is used and recorded as this project's |
+| Folder from an older BPCTool version (no `bpctool-target.json`) whose items are in **another** project | The folder is recorded as that project's — it keeps its list — and this run uses its own `-<8 characters>` folder |
+| None of the items exist any more (for example the project was deleted and created again) | A run that includes Catalog Import stops before the first step: it would skip those rows instead of creating them. Move `ado-id-map.csv` out of the folder (keep a copy) or choose another Run output folder. Other runs only log a warning |
+| This project's folder lists another project's items (e.g. a copied file) | Same as above |
+| Azure DevOps can't be read, or a rehearsal has no PAT | Nothing is decided; an older folder stays unclaimed until a run can check it |
 
 **Setting the folder variables:** copy `bpctool/bpctool.env.example` to `bpctool/bpctool.env` and uncomment `BPCTOOL_CATALOG`, `BPCTOOL_TEMPLATE`, or `BPCTOOL_OUTPUT_DIR`. The launcher reads it on start (double-click launchers included); real environment variables take precedence. Restart BPCTool after editing.
 
@@ -116,7 +142,7 @@ Vite proxies:
 
 ### Recommended (no command line)
 
-1. Install **Node.js 20+** and **Python 3.11+** once on the machine (system installers).
+1. Install **Node.js 20.19+ or 22.12+** and **Python 3.11+** once on the machine (system installers).
 2. Double-click:
    - macOS: `Start BPCTool.command`
    - Windows: `Start BPCTool.bat`
@@ -133,6 +159,8 @@ npm start        # UI + auto-started runner; opens browser
 `npm run setup` installs packages from `runner/requirements.txt` into `.venv`:
 
 - fastapi, uvicorn, openpyxl, pydantic, python-multipart
+
+To run the runner tests, also install `runner/requirements-dev.txt` (adds pytest) with `npm run runner:install-dev`. The `npm run runner*` scripts find the venv's Python on macOS, Linux (`.venv/bin`) and Windows (`.venv\Scripts`), so the same commands work in Terminal, PowerShell and Command Prompt.
 
 ---
 
@@ -189,7 +217,7 @@ Double-click **Start BPCTool** and wait for the browser to open.
 1. Expand **1. Connection**
 2. Enter:
    - **Org URL** — e.g. `https://dev.azure.com/contoso`, `https://contoso.visualstudio.com`, or `contoso`
-   - **PAT** — kept in this browser session only (not persisted to disk); the field uses the full panel width
+   - **PAT** — kept in this browser tab's session storage only (cleared when the tab closes; never in saved profiles or results); the field uses the full panel width. Create it with the [PAT scopes](#pat-scopes) for your run
 3. Confirm **Execution mode** is **Runner** (default)
 4. Wait until the status chip shows **Ready**
 5. Confirm **Multivalue: installed** (required). If **missing**, use **Install Multivalue extension** or install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-devlabs.vsts-extensions-multivalue-control) as an org admin, then **Check** again. Process / layout / project runs are blocked until it is installed and enabled.
@@ -244,7 +272,7 @@ When the **project already exists**, Project Creation also checks that it uses t
    - **Convert Markdown large-text fields to HTML** — leave **unchecked** unless you want HTML conversion (see §8)
    - **Import Deprecated / Deleted rows** — leave **unchecked** (default) to skip catalog rows whose Catalog status is Deprecated or Deleted, and the rows below them (see §9)
 5. **Root area path** defaults to the **project name** (project root); override only if needed. Area path *children* still come from the Excel Area paths sheet. An override below the project (e.g. `Contoso-BPC\Imported`) makes Teams & areas create that node and the whole template area tree under it, with team area assignments to match; Catalog Import moves catalog Area Paths there too (listed as *Area path placed under the Root area path* in the data checks). Areas that already exist elsewhere in the project are kept as they are.
-6. **Run output folder** — where run results go (`<folder>/<org>_<project>/`). Leave empty for the default; keep the same folder for every run against a project.
+6. **Run output folder** — where run results go (`<folder>/<org>_<project>/`, or `<org>_<project>-<code>` when another project's results already use that name — see [One results folder per project](#folder-layout-recommended)). Leave empty for the default; keep the same folder for every run against a project.
 
 **"Your Project Name Here" placeholder:** wherever a workbook's area or iteration path contains `Your Project Name Here` (any casing, optionally in `<…>` / `[…]`), BPCTool substitutes the **Project name** from the form — in the template's Area paths, Iteration paths and Teams *Backlog iteration*, and in catalog rows' **Area Path** / **Iteration Path**. Every substitution is reported in a highlighted line — *Project name applied: 'Your Project Name Here' → '<project>' in N template area/iteration rows and M catalog Area/Iteration Path values* — in Preview plan, the run log, the results card, and the HTML report; each catalog value is also a row in `import-prevalidate.csv` (value in spreadsheet → value used).
 
@@ -458,7 +486,7 @@ If an older apply created custom **Levels** / **Lowest** while leaving system **
 
 ## 11. Outputs and artifacts
 
-Root: `<Run output folder>/<org>_<project>/` — the folder chosen in Run configuration, else `$BPCTOOL_OUTPUT_DIR`, else `bpctool/runner-out` (see §2 Folder layout). One folder per org + project, shared by every release and re-run — back it up and keep it.
+Root: `<Run output folder>/<org>_<project>/` — the folder chosen in Run configuration, else `$BPCTOOL_OUTPUT_DIR`, else `bpctool/runner-out` (see §2 Folder layout). One folder per org + project, shared by every release and re-run — back it up and keep it. A project whose name gives the same folder name as another project's gets `<org>_<project>-<code>`; the results card and report show the folder actually used.
 
 | Artifact | When |
 |----------|------|
@@ -474,6 +502,9 @@ Root: `<Run output folder>/<org>_<project>/` — the folder chosen in Run config
 | `import-changes.json` | Same comparison as counts: how rows were matched (`matchedBy`), items compared and changed, counts by kind, top fields with examples |
 | `ado-id-map.csv` | Live catalog import — `Key`, `WorkItemId`, …; **appended** across runs for resume |
 | `backfill-links-report.csv` | Parent-link backfill statuses after catalog create |
+| `bpctool-target.json` | The organization and project this folder belongs to, written once a run has checked the folder (see *One results folder per project* in §2). Keep it with `ado-id-map.csv` |
+
+CSV reports that people open in Excel (all of the above except `ado-id-map.csv`) put `'` in front of any value starting with `=`, `+`, `-`, `@`, tab or carriage return, so Excel shows it as text instead of running it as a formula.
 
 Every file written by a run carries the same run id (`runId`, the runner job id) and `generatedAt`, so you can tell whether the summary and the failures file came from the same run.
 
@@ -639,7 +670,7 @@ Key design rules:
 - Empty Description is omitted (not invented)
 - No subprocess calls to the reference scripts
 - Launcher replaces an idle BPCTool runner on `:8787` (reuses one with a run in progress) and starts uvicorn (with `--reload` only under `npm run dev`)
-- One rehearsal/live run per org + project at a time
+- One rehearsal/live run per org + project at a time (projects whose results folders would have the same name also wait for each other)
 - Rehearsals never write to Azure DevOps: writers get no client, and Catalog Import's reads go through a client that refuses every write
 
 ---
@@ -651,14 +682,15 @@ Key design rules:
 npm test
 
 # Runner unit/integration tests (needs user template via BPCTOOL_TEMPLATE or catalog folder)
-cd runner && ../.venv/bin/pytest -q
+npm run runner:install-dev   # once: adds pytest to .venv
+npm run runner:test          # any OS; extra pytest args after --, e.g. npm run runner:test -- -k layout
 
 # Lint / production build
 npm run lint
 npm run build
 ```
 
-Notable runner coverage includes Excel IR (disabled WITs, backlogs, project-name placeholder), backlog rename/heal + WIT assignment, team area aggregation (team names ignoring case, *Include sub areas*, one area-tree read), team iterations / backlogIteration GUID and parallel team settings, org URL normalize, layout (boolean fallback payloads after a 400, one fields + form read per type, multivalue control type), project description (failure → warning), Title-outline catalog parents, catalog data checks (area / iteration / state / length / picklists, root area path), the rehearsal change report (ID map and Microsoft ID matching, value normalization, read-only client), step-name validation and the update policy for process / layout / backlog, concurrent-run lock, job cancel / PAT cleared / retention, existing-target checks, failure explanations, run outcome + report, output folders, an end-to-end rehearsal, and multi-select field labels. UI tests cover run-mode step resolution (including Run from selected step onward), the existing-target gates, and the runner-unreachable message.
+Notable runner coverage includes Excel IR (disabled WITs, backlogs, project-name placeholder), backlog rename/heal + WIT assignment, team area aggregation (team names ignoring case, *Include sub areas*, one area-tree read), team iterations / backlogIteration GUID and parallel team settings, org URL normalize, layout (boolean fallback payloads after a 400, one fields + form read per type, multivalue control type), project description (failure → warning), the Process step failing when a work item type / picklist / field can't be created, results folders tied to one project (ownership file, separate folder for a name collision, ID map from another project rejected), spreadsheet-safe CSV reports, Title-outline catalog parents, catalog data checks (area / iteration / state / length / picklists, root area path), the rehearsal change report (ID map and Microsoft ID matching, value normalization, read-only client), step-name validation and the update policy for process / layout / backlog, concurrent-run lock, job cancel / PAT cleared / retention, existing-target checks, failure explanations, run outcome + report, output folders, an end-to-end rehearsal, and multi-select field labels. UI tests cover run-mode step resolution (including Run from selected step onward), the existing-target gates, and the runner-unreachable message.
 
 ---
 
@@ -717,11 +749,25 @@ Use the current quarter's **ADO template guideline** workbook, not a catalog fil
 
 ### A run is already in progress
 
-**Symptom:** starting a run fails with *A run is already in progress for this organization and project (job …)* (HTTP 409).
+**Symptom:** starting a run fails with *A run is already in progress for this organization and project, or a project whose results folder has the same name (job …)* (HTTP 409).
 
-**Why:** another rehearsal or live run for the same org + project is still going — often in a second browser tab. Two at once would create duplicate work items and overwrite each other's reports.
+**Why:** another rehearsal or live run for the same org + project — or a project whose name gives the same results folder name — is still going, often in a second browser tab. Two at once would create duplicate work items and overwrite each other's reports.
 
 **Fix:** wait for it to finish, or cancel it from the tab that started it, then start again.
+
+### Run stops: ado-id-map.csv lists another project or missing work items
+
+**Symptom:** a run that includes Catalog Import stops before the first step with *ado-id-map.csv in results folder '…' lists work items from project '…'* or *None of the … work items checked from ado-id-map.csv … exist in Azure DevOps any more*.
+
+**Why:** the results folder's imported-items list doesn't belong to this project — for example the project was deleted and created again with the same name, or the file was copied from another project's folder. Catalog Import would skip those rows instead of creating them.
+
+**Fix:** move `ado-id-map.csv` out of the results folder (keep a copy), or choose another **Run output folder**, then run again. See *One results folder per project* in §2.
+
+### Process step: … could not be created
+
+**Symptom:** the run stops after **Process Template** with *Process step: N work item type(s) / picklist(s) / field(s) the workbook defines could not be created …*; the run log shows `FAILED:` lines with Azure DevOps' reasons.
+
+**Fix:** usually the PAT lacks Work Items *Read, write, & manage* (see [PAT scopes](#pat-scopes)) or the account can't edit the process. Fix that, then re-run **Process Template**. `WARNING:` lines (updates or disables Azure DevOps refused) don't stop the run.
 
 ### Update confirmation required
 
@@ -735,7 +781,7 @@ Use the current quarter's **ADO template guideline** workbook, not a catalog fil
 
 **Fix:**
 
-- Regenerate PAT with process + project + work item scopes
+- Regenerate the PAT with the [PAT scopes](#pat-scopes) for your run (full setup: Work Items and Project and Team *Read, write, & manage*, Extensions *Read*)
 - Confirm org URL matches the org the PAT belongs to
 - Use **API** mode + Fetch projects as a quick credential check before Runner apply
 - `Azure DevOps returned a sign-in page (HTTP 203)` means the PAT is invalid, expired, or missing scopes
@@ -857,8 +903,10 @@ Completion is stored per org/process/project key in `localStorage`. Use **Clear 
 
 ## 16. Security notes
 
-- PAT is kept in **sessionStorage** only (not persisted to disk)
-- The runner holds a job's PAT in memory only while the job runs and drops it when the job ends; it never writes or logs it
+- The UI keeps the PAT in the browser's **sessionStorage** (not localStorage, not saved profiles), which the browser clears when the tab or window closes. It is still stored by the browser while the session lasts — and a browser that restores sessions may keep it longer — so use a short-lived PAT and close the tab when you're done
+- The runner holds a job's PAT in memory only while the job runs and drops it when the job ends; BPCTool never writes or logs it
+- **Reports contain your data.** Results folders hold work item titles, descriptions, field values, area paths and Azure DevOps work item IDs (summary HTML, CSV reports, `ado-id-map.csv`). Store them like the workbooks, don't attach them to public issues, and delete folders you no longer need — except keep `ado-id-map.csv` while the project may be re-imported. BPCTool never deletes results folders; the runner keeps only the last 20 finished jobs' status in memory, and none after it stops
+- CSV reports prefix text that starts with `=`, `+`, `-` or `@` (or a tab / carriage return) with `'`, so Excel shows it as text instead of running it as a formula. `ado-id-map.csv` is written unchanged because BPCTool reads it back
 - Prefer least-privilege PATs and rotate after bulk imports; extension install needs org extension-management rights
 - Runner binds to `127.0.0.1` by default (local only), accepts only `Host: 127.0.0.1` / `localhost`, and sends no CORS headers, so other web pages can't call it
 - A rehearsal uses the PAT for reads only (project lookup, area paths, states, work items); its client refuses every other request
@@ -884,19 +932,21 @@ Completion is stored per org/process/project key in `localStorage`. Use **Clear 
 - Job store is in-memory; restarting the runner clears job history (and anything to reattach to after a page refresh). It keeps the 20 most recent finished jobs; polling an older job id returns 404
 - Cancel is cooperative: a single long ADO request (e.g. one layout call) finishes before the job stops
 - Some inherited layout surfaces can reject control updates; check layout warnings in the event log
-- Re-running Process may log `Field 'MSBPC.*' warning: ADO 404` when org-scoped fields already exist (Update API is lock/undelete only); fields remain usable — Layout binds them to WITs
+- Fields are organization-wide and can't be changed once created (Azure DevOps' Fields update API only locks or restores them), so Process uses existing fields as they are and counts them as *already existed* — a changed field type, picklist or description in the workbook is not applied to an existing field. A work item type, picklist or field that **can't be created** (for example a 403 because the PAT lacks Work Items *Read, write, & manage*) fails the Process step after it has tried every item, so the run stops before Layout instead of reporting success
 - **Simulate** / **API** modes remain for orchestration stubs and ADO reads; live apply is **Runner** only. Retry count and layout/backlog sheet names are Simulate/API-only and hidden in Runner mode.
 
 ---
 
 ## 18. Quick reference card
 
+A fuller one-page version (PAT scopes, policies, results files, common problems) is in [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md).
+
 ```text
 Double-click: Start BPCTool.command  (macOS)
            or Start BPCTool.bat      (Windows)
 
 In the browser:
-  1. Connection → Ready (Runner mode); org URL + PAT are session-only
+  1. Connection → Ready (Runner mode); org URL + PAT kept for this tab until it closes
      Confirm Multivalue: installed (required for process/layout/project)
   2. Process + project names (+ optional description)
   3. Workflow: Selected step only / Dependency-aware / From selected step onward / Full

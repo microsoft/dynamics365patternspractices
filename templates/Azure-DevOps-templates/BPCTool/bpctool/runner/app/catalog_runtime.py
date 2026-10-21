@@ -20,6 +20,7 @@ from typing import Any, Callable
 
 from .ado_client import AdoClient, AdoError
 from .catalog_import import WorkItemDraft
+from .csv_safe import SafeDictWriter
 
 Emit = Callable[[str, str], None]
 Progress = Callable[[dict[str, Any]], None]
@@ -610,7 +611,7 @@ def backfill_parent_links(
 
     report_path = output_dir / "backfill-links-report.csv"
     with report_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=BACKFILL_REPORT_FIELDS)
+        writer = SafeDictWriter(handle, fieldnames=BACKFILL_REPORT_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
 

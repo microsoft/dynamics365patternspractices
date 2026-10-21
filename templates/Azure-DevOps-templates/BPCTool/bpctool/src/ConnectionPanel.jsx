@@ -88,7 +88,7 @@ export default function ConnectionPanel({
                 type={showPat ? 'text' : 'password'}
                 value={pat}
                 onChange={(event) => onPatChange(event.target.value)}
-                placeholder="PAT (session only, not saved)"
+                placeholder="PAT (kept for this tab only)"
                 autoComplete="off"
                 spellCheck={false}
                 disabled={disabled}
@@ -190,7 +190,9 @@ export default function ConnectionPanel({
           <div className="connection-note">
             <p>{connectionStatusText}</p>
             <p>
-              Org URL and PAT stay in this browser session only. Existing projects and
+              Org URL and PAT are kept in this tab&apos;s session storage until you close it — never in
+              profiles or results. Use a short-lived PAT with the scopes listed in the User Guide
+              (PAT scopes). Existing projects and
               processes load automatically once both are filled in (and after each live run);
               they drive the create vs update policy. Use the buttons to refresh.
               The local apply engine starts automatically with the app — no separate terminal.

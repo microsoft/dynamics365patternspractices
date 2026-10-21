@@ -105,10 +105,11 @@ def describe_step(step_id: str, result: dict[str, Any], *, dry_run: bool) -> tup
             f"{_plural(result.get('wits_created'), 'work item type')} created, "
             f"{n(result.get('wits_updated'))} updated, {n(result.get('wits_disabled'))} disabled; "
             f"{_plural(result.get('fields_created'), 'field')} created"
-            + (f" ({n(result.get('fields_skipped'))} already existed)" if result.get("fields_skipped") else "")
+            + (f" ({n(result.get('fields_existing'))} already existed)" if result.get("fields_existing") else "")
             + f"; {_plural(result.get('picklists'), 'picklist')}."
+            + _warning_note(result)
         )
-        return "ok", text
+        return ("warning" if result.get("warnings") else "ok"), text
     if step_id == "layout":
         status = "warning" if result.get("warnings") else "ok"
         return status, (

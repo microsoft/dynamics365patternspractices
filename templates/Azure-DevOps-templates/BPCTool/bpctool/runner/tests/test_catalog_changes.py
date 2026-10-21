@@ -295,7 +295,8 @@ def test_rehearsal_catalog_step_compares_real_workbook(template_path, tmp_path, 
             return {}
 
         def get_work_items_batch(self, project: str, ids: list[int]) -> list[dict]:
-            assert project == "Contoso-BPC"
+            # "" = the organization-level check of which project ado-id-map.csv belongs to.
+            assert project in {"Contoso-BPC", ""}
             return [
                 {"id": i, "fields": {**sent[i], "System.WorkItemType": imported[i - 1].work_item_type,
                                      **({"System.Title": "Renamed in ADO"} if i == 1 else {})}}

@@ -13,8 +13,10 @@
     "preview": "vite preview --open",
     "test": "vitest run",
     "test:watch": "vitest",
-    "runner": "cd runner && ../.venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8787",
-    "runner:install": ".venv/bin/pip install -r runner/requirements.txt"
+    "runner": "node scripts/runner.mjs start",
+    "runner:install": "node scripts/runner.mjs install",
+    "runner:install-dev": "node scripts/runner.mjs install-dev",
+    "runner:test": "node scripts/runner.mjs test"
   },
   "dependencies": {
     "react": "^19.2.8",

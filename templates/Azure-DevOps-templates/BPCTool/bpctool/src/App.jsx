@@ -1904,8 +1904,9 @@ function App() {
               <code>
                 {(outputRootChoice.trim() || outputRoot || 'runner-out').replace(/[/\\]+$/, '')}/
                 {outputFolderName}/
-              </code>
-              . Keep this folder between runs and releases — <code>ado-id-map.csv</code> there is
+              </code>{' '}
+              (<code>{outputFolderName}-&lt;code&gt;</code> if another project&apos;s results already use that
+              name). Keep this folder between runs and releases — <code>ado-id-map.csv</code> there is
               what prevents duplicate catalog work items. If you change folders, move the existing{' '}
               <code>&lt;org&gt;_&lt;project&gt;</code> folder too.
             </small>

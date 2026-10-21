@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 import html
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +11,7 @@ from typing import Any, Callable
 
 from .ado_client import AdoClient
 from .catalog_import import WorkItemDraft
+from .csv_safe import SafeDictWriter
 from .mapping import TemplateMapping
 
 Emit = Callable[[str, str], None]
@@ -382,7 +382,7 @@ def summarize_changes(changes: list[Change], *, compared: int, examples: int = 3
 
 def write_changes_csv(changes: list[Change], path: Path) -> None:
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+        writer = SafeDictWriter(handle, fieldnames=CSV_FIELDS)
         writer.writeheader()
         for change in changes:
             owner = ""

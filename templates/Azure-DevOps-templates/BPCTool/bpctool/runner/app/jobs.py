@@ -21,6 +21,7 @@ from .catalog_import import load_catalog_drafts, split_retired_drafts
 from .catalog_validate import prevalidate_catalog_drafts, prevalidate_summary
 from .mapping import build_mapping_from_ir
 from .org_url import normalize_ado_org_url
+from .output_folder import folder_lock_key
 from .planner import build_dry_run_plan
 from .run_outcome import catalog_placeholder_count, project_name_notice
 from .timing import format_duration_ms
@@ -39,11 +40,13 @@ class ApplyInProgressError(RuntimeError):
 
 
 def _apply_key(request: JobCreateRequest) -> str:
+    # Keyed on the results folder name, not the project name: "Finance Team" and
+    # "Finance_Team" share a folder name until the first run records its owner.
     try:
-        org = normalize_ado_org_url(request.org_url).lower()
+        org_url = normalize_ado_org_url(request.org_url)
     except ValueError:
-        org = (request.org_url or "").strip().lower()
-    return f"{org}|{(request.project_name or '').strip().lower()}"
+        org_url = (request.org_url or "").strip()
+    return folder_lock_key(org_url, request.project_name)
 
 
 def _now() -> str:
@@ -137,7 +140,8 @@ def create_job(request: JobCreateRequest) -> JobStatusResponse:
             running = _active_apply_keys.get(apply_key)
             if running is not None:
                 raise ApplyInProgressError(
-                    f"A run is already in progress for this organization and project (job {running}). "
+                    "A run is already in progress for this organization and project, or a project "
+                    f"whose results folder has the same name (job {running}). "
                     "Wait for it to finish, or cancel it, before starting another — two runs at once "
                     "would create duplicate work items and overwrite each other's reports."
                 )

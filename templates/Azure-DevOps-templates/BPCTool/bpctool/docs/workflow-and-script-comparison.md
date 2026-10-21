@@ -90,7 +90,7 @@ Catalog is **not** gated by update policy.
 
 | Step | On subsequent run | Conflicts / collisions |
 |------|-------------------|------------------------|
-| **process** | Create missing WITs/picklists/fields; PATCH some field metadata; disable Excel-disabled WITs when possible | WIT create **409** → skip; org field re-PATCH may log non-fatal `MSBPC.*` 404 |
+| **process** | Create missing WITs/picklists/fields (existing org fields are used as is); disable Excel-disabled WITs when possible | WIT / picklist / field create **409** or *already exists* → skip; any other create failure fails the step after every item was tried; update and disable failures are warnings |
 | **layout** | Add missing pages/groups/controls for `X` fields; add `H` fields to the WIT and hide their controls; re-show a control when `H` → `X` | Each type's fields and form are read once; fields already on the type are skipped. Field **409** → present; field **400** → try the boolean fallback payloads, then report it. Control **409** → present; does **not** remove controls for fields that became blank |
 | **project** | Reuse existing; update description when UI description is non-empty | Does **not** re-bind process template on an existing project; stops with an error if the project was created from a different process |
 | **teams** | Create missing teams/areas (area tree read once); PATCH team area assignments with *Include sub areas* from the Teams sheet, so a Teams-only re-run keeps it | Team/area create **409** → exists; team names matched ignoring case |
@@ -171,7 +171,7 @@ Hosts:
 | Step | Runner entry | Primary REST surface |
 |------|--------------|----------------------|
 | **Preflight** | UI Connection / Run gate; `require_multivalue_extension` | `GET\|POST /_apis/extensionmanagement/installedextensionsbyname/ms-devlabs/vsts-extensions-multivalue-control` (`7.1-preview.1`) |
-| **process** | `POST /api/jobs` → `apply_process` | `GET\|POST /_apis/work/processes` · WIT create/PATCH · `GET\|POST\|PUT /_apis/work/processes/lists` · `GET\|POST\|PATCH /_apis/wit/fields` |
+| **process** | `POST /api/jobs` → `apply_process` | `GET\|POST /_apis/work/processes` · WIT create/PATCH · `GET\|POST\|PUT /_apis/work/processes/lists` · `GET\|POST /_apis/wit/fields` |
 | **layout** | `apply_layout` | GET `…/workItemTypes/{wit}/fields` and layout once per WIT (layout re-read after an add) · POST pages/groups/controls · POST `…/workItemTypes/{wit}/fields` for missing fields · `PATCH …/layout/groups/{group}/controls/{field}` (`visible` for `H`) · MultivalueContribution / HtmlFieldControl |
 | **project** | `apply_project` | GET processes · `GET\|POST /_apis/projects` · `PATCH /_apis/projects/{id}` (description) |
 | **teams** | `apply_teams` (reference Script 3) | `GET\|POST …/projects/{id}/teams` · `GET` classificationnodes/Areas tree once · `POST` missing area nodes · `PATCH` teamsettings/teamfieldvalues (`includeChildren` from *Include sub areas*) |
@@ -234,7 +234,7 @@ Key sources: `runner/app/planner.py`, `apply_engine.py`, `ado_client.py`, `catal
 | **Catalog field updates** | Create-only; the only update is setting a Test Case's State after a create that rejected it | Create-only fields (no WIP upsert); spreadsheet edits to mapped keys do not refresh ADO. A rehearsal lists them: `import-changes.csv` compares the workbook with the project's items (from `ado-id-map.csv`, or matched by Microsoft ID) and flags rows a live run would duplicate | Parity; BPCTool adds the change report |
 | **Report** | Script 6 HTML from the import files and phase logs: counts, retry settings, failures reconciled with `ado-id-map.csv`, API status counts per phase log, **quick links** to the ADO project, Boards, Work Items and Process settings | Plain-language HTML/JSON (headline, what needs attention with fixes, steps, files) written after every run, plus a UI results card (no ADO calls); failures from an earlier run are labelled as such. No links into Azure DevOps | Improved; small gap (ADO links) |
 | **UI execution modes** | N/A (CLI scripts) | Runner = apply; API = reads only; Simulate = stubs | Improved / ported |
-| **Edge-case parity** | Full script surface + many ADO quirk workarounds | Template-shaped, not line-for-line; residual: Test Case `New` state, system WIT disable fragility, field 404 on re-run, Deliverables picklist mismatches | Gap / residual |
+| **Edge-case parity** | Full script surface + many ADO quirk workarounds | Template-shaped, not line-for-line; residual: Test Case `New` state, system WIT disable fragility, existing org fields not updated, Deliverables picklist mismatches | Gap / residual |
 | **Observability / UX** | Per-script console/files; limited structured UI | Job events, Run timing, plan preview with data checks, results card, Excel-ready failures / data-check CSVs with fixes, id-map / backfill artifacts | Improved |
 
 ### Known residual vs the reference scripts
@@ -253,6 +253,6 @@ Key sources: `runner/app/planner.py`, `apply_engine.py`, `ado_client.py`, `catal
 - Backfill trusts `ParentId` recorded in `ado-id-map.csv`; a parent changed by hand in ADO after create is not re-checked for those rows (a rehearsal reports it as *Parent differs*).
 - Cancel is cooperative; one long-running ADO request finishes before the job stops.
 - Inherited system WIT disable can still fail in the Process API (manual ADO UI fallback).
-- Re-run Process may log non-fatal `MSBPC.*` field 404s when org fields already exist (Update API is lock/undelete only).
+- Process doesn't change organization fields that already exist (the Fields update API only locks or restores them); a changed type, picklist or description in the workbook isn't applied to them.
 
 See also: [USER_GUIDE.md](../USER_GUIDE.md) (§9 catalog, §10 re-runs, §17 limitations), [CHANGELOG.md](../CHANGELOG.md) (standalone replacement + residual risk).

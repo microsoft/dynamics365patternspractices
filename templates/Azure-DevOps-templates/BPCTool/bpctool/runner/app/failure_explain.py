@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 import json
 import re
 from pathlib import Path
@@ -10,6 +9,7 @@ from typing import Any, Callable
 
 from .catalog_import import WorkItemDraft
 from .catalog_validate import MAX_STRING_LENGTH
+from .csv_safe import SafeWriter
 
 PARENT_PREFIX = "Parent not imported: "
 
@@ -307,7 +307,7 @@ def write_failures_csv(failures: list[dict[str, Any]], path: Path) -> None:
         )
 
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.writer(handle)
+        writer = SafeWriter(handle)
         writer.writerow(FAILURES_CSV_COLUMNS)
         for item in sorted(failures, key=sort_key):
             blocked = item.get("category") == "parent_failed"
