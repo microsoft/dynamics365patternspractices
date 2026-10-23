@@ -11,7 +11,7 @@ from requests.auth import HTTPBasicAuth
 ADO_ORG_URL = "https://dev.azure.com/<YOUR_ORGANIZATION>"  # e.g. "https://dev.azure.com/Contoso"
 ADO_PROJECT = "<YOUR_PROJECT_NAME>"                         # e.g. "Business process catalog"
 PAT = "<YOUR_PERSONAL_ACCESS_TOKEN>"                        # Azure DevOps PAT with full access
-EXCEL_FILE = "ADO template guidelines - OCT 2026.xlsx" # Path to the Excel template file
+EXCEL_FILE = "ADO template guideline (Preview).xlsx" # Path to the Excel template file
 LOG_FILE = "3_ADO_Teams_Areas_Log.txt"
 Sprints_TEAM_NAME = "Sprints"
 
