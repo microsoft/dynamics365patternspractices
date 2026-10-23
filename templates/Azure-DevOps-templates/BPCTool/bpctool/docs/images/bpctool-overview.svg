@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" role="img" aria-labelledby="title desc">
+  <title id="title">BPCTool at a glance</title>
+  <desc id="desc">What you need (Node.js and Python, an Azure DevOps org and PAT, the DevLabs Multivalue extension, this quarter's workbooks), how you use it (launch, connect, names and files, preview plan, rehearse, run live, review results), what you get, and the seven setup steps in order.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif; fill: #0f172a; }
+    .h1 { font-size: 34px; font-weight: 700; }
+    .sub { font-size: 17px; fill: #475569; }
+    .card-title { font-size: 20px; font-weight: 700; fill: #ffffff; }
+    .item { font-size: 16px; font-weight: 650; }
+    .detail { font-size: 14px; fill: #475569; }
+    .num { font-size: 15px; font-weight: 700; fill: #ffffff; }
+    .chip { font-size: 14px; font-weight: 700; fill: #ffffff; }
+    .band { font-size: 18px; font-weight: 700; }
+    .foot { font-size: 14px; fill: #475569; }
+  </style>
+
+  <rect x="0" y="0" width="1280" height="800" rx="24" fill="#f8fafc"/>
+
+  <!-- Header -->
+  <text class="h1" x="40" y="62">BPCTool at a glance</text>
+  <text class="sub" x="40" y="92">Excel workbooks in &#8594; a configured Azure DevOps Business Process Catalog out. A local app: React UI + runner, no scripts to run.</text>
+
+  <!-- Column 1: What you need -->
+  <rect x="40" y="120" width="340" height="450" rx="16" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <path d="M40 136 a16 16 0 0 1 16 -16 h308 a16 16 0 0 1 16 16 v34 h-340 z" fill="#2563eb"/>
+  <text class="card-title" x="60" y="153">1 &#183; What you need</text>
+
+  <g transform="translate(60,196)">
+    <circle cx="14" cy="10" r="14" fill="#dbeafe"/><text x="7" y="15" font-size="14" font-weight="700" fill="#1d4ed8">&#10003;</text>
+    <text class="item" x="40" y="15">Node.js 20+ &#183; Python 3.11+</text>
+    <text class="detail" x="40" y="36">on the computer that runs BPCTool</text>
+  </g>
+  <g transform="translate(60,284)">
+    <circle cx="14" cy="10" r="14" fill="#dbeafe"/><text x="7" y="15" font-size="14" font-weight="700" fill="#1d4ed8">&#10003;</text>
+    <text class="item" x="40" y="15">Azure DevOps org + PAT</text>
+    <text class="detail" x="40" y="36">rights to manage processes,</text>
+    <text class="detail" x="40" y="55">projects and work items</text>
+  </g>
+  <g transform="translate(60,372)">
+    <circle cx="14" cy="10" r="14" fill="#dbeafe"/><text x="7" y="15" font-size="14" font-weight="700" fill="#1d4ed8">&#10003;</text>
+    <text class="item" x="40" y="15">DevLabs Multivalue extension</text>
+    <text class="detail" x="40" y="36">on the org &#8212; BPCTool checks it</text>
+    <text class="detail" x="40" y="55">and can install it for you</text>
+  </g>
+  <g transform="translate(60,460)">
+    <circle cx="14" cy="10" r="14" fill="#dbeafe"/><text x="7" y="15" font-size="14" font-weight="700" fill="#1d4ed8">&#10003;</text>
+    <text class="item" x="40" y="15">This quarter's workbooks</text>
+    <text class="detail" x="40" y="36">ADO template guideline + catalog</text>
+    <text class="detail" x="40" y="55">.xlsx files, one folder per release</text>
+    <text class="detail" x="40" y="74">e.g. ~/BPC Files/2026-Q4</text>
+  </g>
+
+  <!-- Column 2: How you use it -->
+  <rect x="400" y="120" width="480" height="450" rx="16" fill="#ffffff" stroke="#ddd6fe" stroke-width="2"/>
+  <path d="M400 136 a16 16 0 0 1 16 -16 h448 a16 16 0 0 1 16 16 v34 h-480 z" fill="#7c3aed"/>
+  <text class="card-title" x="420" y="153">2 &#183; How you use it</text>
+  <line x1="434" y1="200" x2="434" y2="526" stroke="#ddd6fe" stroke-width="3"/>
+
+  <g transform="translate(420,186)">
+    <circle cx="14" cy="14" r="14" fill="#7c3aed"/><text class="num" x="9.5" y="19.5">1</text>
+    <text class="item" x="40" y="12">Launch</text>
+    <text class="detail" x="40" y="31">Double-click Start BPCTool (macOS or Windows)</text>
+  </g>
+  <g transform="translate(420,240)">
+    <circle cx="14" cy="14" r="14" fill="#7c3aed"/><text class="num" x="9.5" y="19.5">2</text>
+    <text class="item" x="40" y="12">Connect</text>
+    <text class="detail" x="40" y="31">Org URL + PAT &#183; confirm Multivalue: installed</text>
+  </g>
+  <g transform="translate(420,294)">
+    <circle cx="14" cy="14" r="14" fill="#7c3aed"/><text class="num" x="9.5" y="19.5">3</text>
+    <text class="item" x="40" y="12">Names &amp; files</text>
+    <text class="detail" x="40" y="31">Process, project, release folder, output folder</text>
+  </g>
+  <g transform="translate(420,348)">
+    <circle cx="14" cy="14" r="14" fill="#7c3aed"/><text class="num" x="9.5" y="19.5">4</text>
+    <text class="item" x="40" y="12">Preview plan</text>
+    <text class="detail" x="40" y="31">Reads the workbooks only &#183; shows data checks</text>
+  </g>
+  <g transform="translate(420,402)">
+    <circle cx="14" cy="14" r="14" fill="#a78bfa"/><text class="num" x="9.5" y="19.5">5</text>
+    <text class="item" x="40" y="12">Rehearse <tspan class="detail">(optional)</tspan></text>
+    <text class="detail" x="40" y="31">Runs every step without changing Azure DevOps</text>
+  </g>
+  <g transform="translate(420,456)">
+    <circle cx="14" cy="14" r="14" fill="#dc2626"/><text class="num" x="9.5" y="19.5">6</text>
+    <text class="item" x="40" y="12">Run live</text>
+    <text class="detail" x="40" y="31">A red note names the org, process and project</text>
+  </g>
+  <g transform="translate(420,510)">
+    <circle cx="14" cy="14" r="14" fill="#059669"/><text class="num" x="9.5" y="19.5">7</text>
+    <text class="item" x="40" y="12">Review the results</text>
+    <text class="detail" x="40" y="31">Results card &#183; report &#183; CSVs that say how to fix</text>
+  </g>
+
+  <!-- Column 3: What you get -->
+  <rect x="900" y="120" width="340" height="450" rx="16" fill="#ffffff" stroke="#a7f3d0" stroke-width="2"/>
+  <path d="M900 136 a16 16 0 0 1 16 -16 h308 a16 16 0 0 1 16 16 v34 h-340 z" fill="#059669"/>
+  <text class="card-title" x="920" y="153">3 &#183; What you get</text>
+
+  <g transform="translate(920,196)">
+    <circle cx="14" cy="10" r="14" fill="#d1fae5"/><text x="6" y="15" font-size="14" font-weight="700" fill="#047857">&#9733;</text>
+    <text class="item" x="40" y="15">Inherited process</text>
+    <text class="detail" x="40" y="36">work item types, fields,</text>
+    <text class="detail" x="40" y="55">picklists and form layouts</text>
+  </g>
+  <g transform="translate(920,282)">
+    <circle cx="14" cy="10" r="14" fill="#d1fae5"/><text x="6" y="15" font-size="14" font-weight="700" fill="#047857">&#9733;</text>
+    <text class="item" x="40" y="15">Project ready to use</text>
+    <text class="detail" x="40" y="36">teams, areas, iterations,</text>
+    <text class="detail" x="40" y="55">backlog levels</text>
+  </g>
+  <g transform="translate(920,368)">
+    <circle cx="14" cy="10" r="14" fill="#d1fae5"/><text x="6" y="15" font-size="14" font-weight="700" fill="#047857">&#9733;</text>
+    <text class="item" x="40" y="15">Catalog as work items</text>
+    <text class="detail" x="40" y="36">~15k linked items; re-runs resume</text>
+    <text class="detail" x="40" y="55">and never duplicate</text>
+  </g>
+  <g transform="translate(920,454)">
+    <circle cx="14" cy="10" r="14" fill="#d1fae5"/><text x="6" y="15" font-size="14" font-weight="700" fill="#047857">&#9733;</text>
+    <text class="item" x="40" y="15">Results you can act on</text>
+    <text class="detail" x="40" y="36">plain-language report; failures</text>
+    <text class="detail" x="40" y="55">and data checks as Excel CSVs</text>
+  </g>
+
+  <!-- Band: the seven steps -->
+  <text class="band" x="40" y="620">What it sets up in Azure DevOps &#8212; always in this order</text>
+  <g transform="translate(40,640)">
+    <polygon points="0,0 150,0 166,32 150,64 0,64" fill="#1e40af"/>
+    <text class="chip" x="16" y="28">1 Process</text><text class="chip" x="16" y="47">template</text>
+  </g>
+  <g transform="translate(212,640)">
+    <polygon points="0,0 150,0 166,32 150,64 0,64 16,32" fill="#1d4ed8"/>
+    <text class="chip" x="28" y="28">2 Page</text><text class="chip" x="28" y="47">layouts</text>
+  </g>
+  <g transform="translate(384,640)">
+    <polygon points="0,0 150,0 166,32 150,64 0,64 16,32" fill="#2563eb"/>
+    <text class="chip" x="28" y="37">3 Project</text>
+  </g>
+  <g transform="translate(556,640)">
+    <polygon points="0,0 150,0 166,32 150,64 0,64 16,32" fill="#4f46e5"/>
+    <text class="chip" x="28" y="28">4 Teams &amp;</text><text class="chip" x="28" y="47">areas</text>
+  </g>
+  <g transform="translate(728,640)">
+    <polygon points="0,0 150,0 166,32 150,64 0,64 16,32" fill="#6d28d9"/>
+    <text class="chip" x="28" y="28">5 Backlogs &amp;</text><text class="chip" x="28" y="47">iterations</text>
+  </g>
+  <g transform="translate(900,640)">
+    <polygon points="0,0 150,0 166,32 150,64 0,64 16,32" fill="#7c3aed"/>
+    <text class="chip" x="28" y="28">6 Catalog</text><text class="chip" x="28" y="47">import</text>
+  </g>
+  <g transform="translate(1072,640)">
+    <polygon points="0,0 168,0 168,64 0,64 16,32" fill="#047857"/>
+    <text class="chip" x="28" y="28">7 Run</text><text class="chip" x="28" y="47">report</text>
+  </g>
+
+  <text class="foot" x="40" y="752">Preview plan and Rehearse never change Azure DevOps.  &#183;  Keep the output folder: ado-id-map.csv lets a re-run pick up where it stopped.</text>
+</svg>
