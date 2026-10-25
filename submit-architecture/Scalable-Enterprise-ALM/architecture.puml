@@ -1,0 +1,136 @@
+@startuml
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/refs/heads/main/icons
+!include ICONURL/common.puml
+!include ICONURL/devicons2/azuredevops.puml
+!include ICONURL/devicons2/azure.puml
+!include ICONURL/devicons/git.puml
+!include ICONURL/font-awesome-6/file_code.puml
+!include ICONURL/font-awesome-6/folder_tree.puml
+!include ICONURL/font-awesome-6/table.puml
+skinparam componentStyle rectangle
+skinparam ranksep 0
+skinparam nodesep 0
+
+
+
+package "<$azuredevops{scale=0.5}> Common AzDO project" {
+
+    package "<$git{scale=0.5}>Common Repository\n(alm-templates)" <<Cloud>> #E1F5FF {
+        component "<$file_code{scale=1}>\ndeploy-job-template.yml" as deploy #A8DAFF {
+            component parameters [
+                **Template**
+
+                Parameters:
+                - solutionNames
+                - dataPackages
+                - azureResourceBICEPTemplates
+            ]
+
+            component solutions [
+                Step: Deploy solutions
+                //Complex logic using//
+                //Power Apps CLI//
+                //and conditional logic//
+            ]
+
+            component data [
+                Step: Deploy data CMT packages
+                //Complex logic using//
+                //Configuration Migration in PAC//
+            ]
+
+            component azure [
+                Step: Deploy Azure BICEP templates
+                //Complex logic//
+            ]
+
+            parameters -> solutions
+            solutions -> data
+            data -> azure
+        }
+    }
+}
+
+package "<$azuredevops{scale=0.5}> CustomerService AzDO project" {
+
+
+    package "<$git{scale=0.5}>CustomerService Repository" <<Folder>> #FFF4E1 {
+        
+        component "<$file_code{scale=1}>\ndeploy.yml" as pipeline1 {
+            component pipeline1Step [
+            **Job: use template in common repo**
+
+            Parameter values:
+                solutionNames: CustomerServiceCore, CustomerServiceFeedback
+                dataPackages: products.zip
+                azureResourceBICEPTemplates: integration1.bicep
+            ]
+    }
+
+component "<$folder_tree{scale=0.3}> Solution folder:\nCustomerServiceCore" as s1
+component "<$folder_tree{scale=0.3}> Solution folder:\nCustomerServiceFeedback" as s2
+component "<$table{scale=0.3}> CMT Data package:\nproducts" as t1
+component "<$azure{scale=0.3}> Azure BICEP template:\nintegration1" as a1
+
+
+    }
+}
+
+s1 .up.> pipeline1Step
+s2 .up.> pipeline1Step
+t1 .up.> pipeline1Step
+a1 .up.> pipeline1Step
+
+
+package "<$azuredevops{scale=0.5}> Sales AzDO project" {
+
+package "<$git{scale=0.5}>SalesApp Repository" <<Folder>> #FFF4E1 {
+    component "<$file_code{scale=1}>\ndeploy.yml" as pipeline2 {
+        component pipeline2Step [
+            **Job: use template in common repo**
+        
+          Parameter values:
+            solutionNames: SalesApp
+            dataPackages: territories.zip
+        ]
+
+    }
+    component "<$folder_tree{scale=0.3}> Solution folder:\nSalesApp" as s3
+component "<$table{scale=0.3}> CMT Data package:\nterritories" as t2
+s3 .up.> pipeline2Step
+t2 .up.> pipeline2Step
+}
+}
+
+
+package "<$azuredevops{scale=0.3}> Employee Feedback (Power Apps) AzDO project" {
+package "<$git{scale=0.5}>EmployeeFeedback Repository" <<Folder>> #FFF4E1 {
+    component "<$file_code{scale=1}>\ndeploy.yml" as pipeline3 {
+
+        component pipeline3Step [
+          **Job: use template in common repo**
+
+          Parameter values:        
+             solutionNames: EmployeeFeedback
+             azureResourceBICEPTemplates: hrSystemIntegration.bicep
+        ]
+
+    }
+        
+    component "<$folder_tree{scale=0.3}> Solution folder:\nEmployeeFeedback" as s4
+    component "<$azure{scale=0.3}> Azure BICEP template:\nhrSystemIntegration" as a2
+
+    s4 .up.> pipeline3Step
+    a2 .up.> pipeline3Step
+
+}
+}
+
+
+pipeline1Step --up-> parameters : invokes template
+
+pipeline2Step --up-> parameters : invokes template
+
+pipeline3Step --up-> parameters : invokes template
+
+@enduml
