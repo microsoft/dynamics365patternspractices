@@ -182,26 +182,30 @@
 <rect x="1467" y="381" width="4" height="40" rx="2" fill="#4F7A28"/>
 <text x="1479" y="399" class="cb">email</text>
 <text x="1479" y="414" class="cs">copies of confirmations</text>
-<rect x="1467" y="429" width="166" height="62" rx="5" fill="#fff" stroke="#C8C6C4"/>
-<rect x="1467" y="429" width="4" height="62" rx="2" fill="#8E562E"/>
-<text x="1479" y="447" class="cb">conversation</text>
-<text x="1479" y="462" class="cs">written by Contact Center:</text>
-<text x="1479" y="476" class="cs">transcript, summary, case</text>
-<rect x="1467" y="499" width="166" height="40" rx="5" fill="#fff" stroke="#C8C6C4"/>
-<rect x="1467" y="499" width="4" height="40" rx="2" fill="#8A8886"/>
-<text x="1479" y="517" class="cb">account</text>
-<text x="1479" y="532" class="cs">8 fictional companies</text>
-<rect x="1467" y="547" width="166" height="48" rx="5" fill="#fff" stroke="#C8C6C4"/>
-<rect x="1467" y="547" width="4" height="48" rx="2" fill="#605E5C"/>
-<text x="1479" y="565" class="cb">Outlook (Microsoft 365)</text>
-<text x="1479" y="580" class="cs">e-mails with Confirm / Undo</text>
-<rect x="1467" y="603" width="166" height="40" rx="5" fill="#fff" stroke="#C8C6C4" stroke-dasharray='4 3'/>
-<rect x="1467" y="603" width="4" height="40" rx="2" fill="#8A8886"/>
-<text x="1479" y="621" class="cb">Kit test sets / results</text>
-<text x="1479" y="636" class="cs">Verify &amp; Cancel (planned)</text>
-<text x="1467" y="668" class="ls">Agent flows as tools</text>
-<text x="1467" y="683" class="ls">Dataverse connection reference</text>
-<text x="1467" y="700" class="ls" font-style="italic">colour = who writes the data</text>
+<rect x="1467" y="429" width="166" height="40" rx="5" fill="#fff" stroke="#C8C6C4"/>
+<rect x="1467" y="429" width="4" height="40" rx="2" fill="#4F7A28"/>
+<text x="1479" y="447" class="cb">pg_actiontoken</text>
+<text x="1479" y="462" class="cs">single-use link token, 72 h</text>
+<rect x="1467" y="477" width="166" height="62" rx="5" fill="#fff" stroke="#C8C6C4"/>
+<rect x="1467" y="477" width="4" height="62" rx="2" fill="#8E562E"/>
+<text x="1479" y="495" class="cb">conversation</text>
+<text x="1479" y="510" class="cs">written by Contact Center:</text>
+<text x="1479" y="524" class="cs">transcript, summary, case</text>
+<rect x="1467" y="547" width="166" height="40" rx="5" fill="#fff" stroke="#C8C6C4"/>
+<rect x="1467" y="547" width="4" height="40" rx="2" fill="#8A8886"/>
+<text x="1479" y="565" class="cb">account</text>
+<text x="1479" y="580" class="cs">8 fictional companies</text>
+<rect x="1467" y="595" width="166" height="48" rx="5" fill="#fff" stroke="#C8C6C4"/>
+<rect x="1467" y="595" width="4" height="48" rx="2" fill="#605E5C"/>
+<text x="1479" y="613" class="cb">Outlook (Microsoft 365)</text>
+<text x="1479" y="628" class="cs">e-mails with Confirm / Undo</text>
+<rect x="1467" y="651" width="166" height="40" rx="5" fill="#fff" stroke="#C8C6C4" stroke-dasharray='4 3'/>
+<rect x="1467" y="651" width="4" height="40" rx="2" fill="#8A8886"/>
+<text x="1479" y="669" class="cb">Kit test sets / results</text>
+<text x="1479" y="684" class="cs">Verify &amp; Cancel (planned)</text>
+<text x="1467" y="716" class="ls">Agent flows as tools</text>
+<text x="1467" y="731" class="ls">Dataverse connection reference</text>
+<text x="1467" y="748" class="ls" font-style="italic">colour = who writes the data</text>
 <text x="1244" y="814" class="ls" font-style="italic">colour = owning agent · grey = data trigger</text>
 <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImU1NWQwYzI5LWFmMWUtNDdmOC04Njg3LTNiNTc3ODRhOWZlMiIgeDE9IjUuNjgxIiB5MT0iLTAuODYyIiB4Mj0iNS42ODEiIHkyPSIxNS4wMDgiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM1ZWEwZWYiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDA3OGQ0IiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxnIGlkPSJiNWY5Y2E4ZS1lNDRiLTRkYTAtYWM1OS1iNDQ0YzA3NjFjMDUiPjxwYXRoIGQ9Ik03LjMsNy4wMTlIMTcuMzQxQS42NTkuNjU5LDAsMCwxLDE4LDcuNjc3djcuOTgxYS42Ni42NiwwLDAsMS0uNjU5LjY1OGgtNC4xMWEuMTA5LjEwOSwwLDAsMC0uMDY3LjAyM2wtMi4xMDgsMS42MTVhLjIxOS4yMTksMCwwLDEtLjM1My0uMTc0VjE2LjQyNmEuMTEuMTEsMCwwLDAtLjEwOS0uMTFINy4zYS42NTkuNjU5LDAsMCwxLS42NTgtLjY1OFY3LjY3N0EuNjYuNjYsMCwwLDEsNy4zLDcuMDE5WiIgZmlsbD0iIzUwZTZmZiIgLz48cGF0aCBkPSJNMTEuMzYxLjY1OXY3Ljk4QS42NTkuNjU5LDAsMCwxLDEwLjcsOS4zaC0zLjNhLjExLjExLDAsMCwwLS4xMDkuMTF2MS4zNTVhLjIyLjIyLDAsMCwxLS4zNTMuMTc0TDQuODM2LDkuMzJBLjEwOS4xMDksMCwwLDAsNC43NjksOS4zSC42NTlBLjY2LjY2LDAsMCwxLDAsOC42MzlWLjY1OUEuNjU5LjY1OSwwLDAsMSwuNjU5LDBIMTAuN0EuNjYuNjYsMCwwLDEsMTEuMzYxLjY1OVoiIGZpbGw9InVybCgjZTU1ZDBjMjktYWYxZS00N2Y4LTg2ODctM2I1Nzc4NGE5ZmUyKSIgLz48cGF0aCBkPSJNOC4xLDQuMjZhMy40OCwzLjQ4LDAsMCwxLS4wNy43LDMuNjg4LDMuNjg4LDAsMCwxLS4yLjY2NywzLjI0OSwzLjI0OSwwLDAsMS0uMzI5LjYxNSw0LjAzLDQuMDMsMCwwLDEtLjMzNi40MjYuMTU2LjE1NiwwLDAsMS0uMjI2LDBsLS4wMzEtLjAzYS4xNTkuMTU5LDAsMCwxLDAtLjIyLDMuMjYxLDMuMjYxLDAsMCwwLC4zLS4zNzgsMy4xNjQsMy4xNjQsMCwwLDAsLjQ3Ny0xLjE1MywzLjI0MiwzLjI0MiwwLDAsMCwwLTEuMjYyLDMuMTMsMy4xMywwLDAsMC0uMTgxLS42LDMuMzExLDMuMzExLDAsMCwwLS4zLS41NTMsMy4xMDcsMy4xMDcsMCwwLDAtLjMtLjM4LjE2LjE2LDAsMCwxLDAtLjIybC4wMzItLjAzMWEuMTU2LjE1NiwwLDAsMSwuMjI1LDAsMy41NTUsMy41NTUsMCwwLDEsLjMzNi40MjgsMy40NTMsMy40NTMsMCwwLDEsLjMyNi42MTUsMy43NiwzLjc2LDAsMCwxLC4yLjY2N0EzLjMsMy4zLDAsMCwxLDguMSw0LjI2Wk02LjkyNCwzLjNhMi41MTYsMi41MTYsMCwwLDAtLjQzMS0uNjkzLjE1NS4xNTUsMCwwLDAtLjIyNiwwbC0uMDMxLjAzMWEuMTU0LjE1NCwwLDAsMC0uMDEuMjExLDIuMTQyLDIuMTQyLDAsMCwxLDAsMi44MjUuMTU1LjE1NSwwLDAsMCwuMDEuMjEybC4wMzEuMDMxYS4xNTUuMTU1LDAsMCwwLC4yMjYsMCwyLjU0NiwyLjU0NiwwLDAsMCwuNDMxLS42OTMsMi41MSwyLjUxLDAsMCwwLDAtMS45MTZabS0xLjIzOC4zYTEuMTM0LDEuMTM0LDAsMCwxLC4xNDMuMjQ4LDEuMDg4LDEuMDg4LDAsMCwxLDAsLjgyNCwxLjAxMSwxLjAxMSwwLDAsMS0uMTQyLjI0NS4xNTYuMTU2LDAsMCwwLC4wMTQuMjA1bC4wMy4wM2EuMTU5LjE1OSwwLDAsMCwuMjM1LS4wMTIsMS40MjEsMS40MjEsMCwwLDAsLjItLjMzNCwxLjQ0NCwxLjQ0NCwwLDAsMCwuMTA2LS41NDcsMS40ODYsMS40ODYsMCwwLDAtLjEwOS0uNTQ3LDEuMzU5LDEuMzU5LDAsMCwwLS4xOTMtLjMzMi4xNTguMTU4LDAsMCwwLS4yMzYtLjAxM0w1LjcsMy40QS4xNTMuMTUzLDAsMCwwLDUuNjg2LDMuNlptLTItLjQxM0gzLjMxNEEuMzE0LjMxNCwwLDAsMCwzLDMuNVY1LjAxOGEuMzE1LjMxNSwwLDAsMCwuMzE0LjMxNGguMzc0YS4zMTQuMzE0LDAsMCwxLC4yMjIuMDkybC45MzcuOTM1YS4xNjEuMTYxLDAsMCwwLC4xMTEuMDQ2aDBhLjE4Ny4xODcsMCwwLDAsLjE4Ny0uMTg3VjIuM2EuMTg5LjE4OSwwLDAsMC0uMTg5LS4xODloMGEuMTYyLjE2MiwwLDAsMC0uMTEyLjA0NkwzLjkxLDMuMUEuMzE1LjMxNSwwLDAsMSwzLjY4OCwzLjE4OFoiIGZpbGw9IiNmZmYiIC8+PHBhdGggZD0iTTE1LjIxMSwxMC45MzJhLjgzMS44MzEsMCwxLDEtLjgzLjgzQS44My44MywwLDAsMSwxNS4yMTEsMTAuOTMyWm0tMy40OC44MzdhLjgzMS44MzEsMCwxLDAsLjgzMS0uODNBLjgzMS44MzEsMCwwLDAsMTEuNzMxLDExLjc2OVptLTIuNjQ5LDBhLjgzMS44MzEsMCwxLDAsLjgzMS0uODNBLjgzMS44MzEsMCwwLDAsOS4wODIsMTEuNzY5WiIgZmlsbD0iI2ZmZiIgLz48L2c+PC9zdmc+" x="877.0" y="897.0" width="46" height="46"/>
 <text x="900" y="961.0" text-anchor="middle" class="lb">Speech</text>
@@ -260,7 +264,7 @@
 <path d="M1444,176 L1464,176" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
 <path d="M1444,246 L1464,246" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
 <path d="M1444,305 L1464,305" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
-<path d="M1444,571 L1464,571" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
+<path d="M1444,619 L1464,619" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
 <path d="M1444,353 L1464,353" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/><path d="M1444,401 L1464,401" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/><circle cx="1444" cy="440" r="11" fill="#0078D4" stroke="#fff" stroke-width="2"/><text x="1444" y="444.5" text-anchor="middle" class="num">7</text>
 <path d="M790,455 L688,455" fill="none" stroke="#0078D4" stroke-width="2"  marker-end="url(#ab)"/>
 <circle cx="739.0" cy="455.0" r="11" fill="#0078D4" stroke="#fff" stroke-width="2"/>
@@ -310,8 +314,8 @@
 <rect x="1469" y="992" width="177" height="46" rx="5" fill="#fff" stroke="#C8C6C4"/>
 <rect x="1469" y="992" width="4" height="46" rx="2" fill="#6B2FA3"/>
 <text x="1481" y="1010" class="cb">Click Confirm / Undo</text>
-<text x="1481" y="1027" class="cs">link → Lumi_Email response</text>
-<path d="M1633,571 L1652,571 L1652,913 L1649,913" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
+<text x="1481" y="1027" class="cs">confirm page · single-use token</text>
+<path d="M1633,619 L1652,619 L1652,913 L1649,913" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
 <path d="M1652,966 L1649,966" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
 <path d="M1652,913 L1652,966" fill="none" stroke="#0078D4" stroke-width="2"/>
 <circle cx="1652" cy="835" r="11" fill="#0078D4" stroke="#fff" stroke-width="2"/>
