@@ -222,11 +222,11 @@
 <text x="510.0" y="174.5" text-anchor="middle" class="num">2</text>
 <text x="510" y="196" text-anchor="middle" class="al">inbound call</text>
 <text x="510" y="209" text-anchor="middle" class="al">to workstream</text>
-<path d="M682,170 L800,170" fill="none" stroke="#8A8886" stroke-width="2" stroke-dasharray='6 4' marker-end="url(#ag)"/>
-<circle cx="741.0" cy="170.0" r="11" fill="#8A8886" stroke="#fff" stroke-width="2"/>
+<path d="M682,170 L800,170" fill="none" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
+<circle cx="741.0" cy="170.0" r="11" fill="#0078D4" stroke="#fff" stroke-width="2"/>
 <text x="741.0" y="174.5" text-anchor="middle" class="num">3</text>
 <text x="740" y="143" text-anchor="middle" class="al">hand-off to</text>
-<text x="740" y="156" text-anchor="middle" class="al">AI agent (to do)</text>
+<text x="740" y="156" text-anchor="middle" class="al">AI agent</text>
 <path d="M900,802 L900,887" fill="none" stroke="#0078D4" stroke-width="2"  marker-end="url(#ab)" marker-start='url(#sb)'/>
 <circle cx="900.0" cy="844.5" r="11" fill="#0078D4" stroke="#fff" stroke-width="2"/>
 <text x="900.0" y="849.0" text-anchor="middle" class="num">4</text>
