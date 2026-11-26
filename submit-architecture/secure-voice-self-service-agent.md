@@ -187,7 +187,7 @@ Never publish the trigger URL outside these emails, and rotate it if it leaks.
 
 Principal author:
 
-[**Magdalena Kaczkowska**](https://www.linkedin.com/in/magdalena-kaczkowska-powergirl/), Power Platform Solution Architect & Agentic AI Expert in Dynamics 365
+[**Magdalena Kaczkowska**](https://www.linkedin.com/in/magdalena-kaczkowska-powergirl/), Microsoft MVP, Power Platform Solution Architect & Agentic AI Expert in Dynamics 365
 
 ## Related resources
 
