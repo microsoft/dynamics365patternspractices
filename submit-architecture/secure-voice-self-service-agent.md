@@ -33,7 +33,7 @@ The numbers and letters match the labels in the diagram.
 
 1. **Inbound call to the workstream**: Azure Communication Services delivers the call to a voice workstream in Dynamics 365 Contact Center, which handles queuing and routing.
 
-1. **Handoff to the AI agent**: The workstream routes the call to the Copilot Studio agent. The agent uses the Customer Conversation harness, which is built for customer-facing voice and chat conversations.
+1. **Handoff to the AI agent (planned)**: The workstream routes the call to the Copilot Studio agent. The agent uses the Customer Conversation harness, which is built for customer-facing voice and chat conversations. In the example implementation, this route is still being configured (dashed line in the diagram). Today, callers reach the agent through Teams Phone (A) and web chat (C).
 
    **A. Teams Phone**: Employees can call the same agent through a Teams Phone resource account of type AI agent. This path reaches the agent directly, without the contact center queue.
 
@@ -52,7 +52,7 @@ The numbers and letters match the labels in the diagram.
 
 1. **Dataverse**: Agent flows read and write Dataverse tables through a connection reference. Every flow that changes data first checks on the server side that the contact was verified in the current conversation and that the verification hasn't expired. After each change, the flow writes a timeline note, creates a case for a representative, and stores a copy of the confirmation email.
 
-1. **Customer email**: Outlook sends the customer a confirmation email for every change. The email has **Confirm** and **Undo** buttons that call the *Email response* flow, which confirms or reverses the change. The team receives a copy.
+1. **Customer email**: Outlook sends the customer a confirmation email for every change. The email has **Confirm** and **Undo** links. Each link opens a confirmation page that changes nothing on its own. Only when the customer selects the button on that page does the page send a POST request with a single-use token to the *Email response* flow, which confirms or reverses the change. The team receives a copy. For details, see [Protect action links](#security).
 
 1. **Representative and app changes**: Representatives in the Copilot Service workspace see the case, notes, and emails that the agent created. When a representative changes a subscription status directly in the app, a Dataverse-triggered flow sends the customer the same kind of email with Confirm and Undo.
 
@@ -102,7 +102,7 @@ The agent combines a natural conversation with strict process steps:
 - Handoff with a summary to a representative in the same contact center.
 - Real-time visibility for internal teams in Microsoft Teams, including a separate channel for security alerts.
 
-The agent runs today in Dynamics 365 Contact Center. Contact Center Intelligence also connects to other contact center platforms, so the same agent design can be used with an existing contact center where routing and telephony stay in place.
+The example agent is built in a Dynamics 365 Contact Center environment. Today, callers reach it through Teams Phone and web chat, and the route from the Contact Center voice workstream is planned. Contact Center Intelligence also connects to other contact center platforms, so the same agent design can be used with an existing contact center where routing and telephony stay in place.
 
 ### Potential use cases
 
@@ -121,7 +121,9 @@ These considerations implement the pillars of Power Platform Well-Architected, a
 
 **Handle failures in one place**: Use a Try scope and a Catch scope in each flow, and return a single result value to the agent (for example *Cancelled*, *NotFound*, *NotVerified*, or *Error*). Keep the main change when only a follow-up step, such as the note or the email, fails.
 
-**Prevent trigger loops and duplicate notifications**: The agent flows and the Dataverse-triggered flow change the same column. Each agent flow writes a change stamp (a date and time column) in the same update. The trigger condition of the Dataverse-triggered flow skips changes where the stamp is within 60 seconds of the modified-on value. The triggered flow doesn't update the subscription itself, so it can't trigger itself again.
+**Prevent trigger loops and duplicate notifications**: The agent flows and representatives in the app change the same column. Record who made each change: add a *change source* column (for example *Agent* or *App*) that every writer sets in the same update. Agent flows set it to *Agent*. A form script, business rule, or plug-in sets it to *App* for changes made in the app, so a later app change never inherits an old agent value. The trigger condition of the Dataverse-triggered flow runs only when the change source is *App*. The triggered flow doesn't update the subscription itself, so it can't trigger itself again.
+
+A simpler alternative is a time stamp that agent flows write in the same update, with a trigger condition that skips changes within a short window of the stamp. This approach is easier to build but suppresses a legitimate app change made inside the window, so use it only for prototypes.
 
 **Don't make the caller wait for notifications**: The security alert flow responds to the agent first and then posts to Teams, so a slow external service never delays the conversation.
 
@@ -135,7 +137,13 @@ These considerations implement the pillars of Power Platform Well-Architected, a
 
 **Treat fraud signals as a hard stop**: When voice biometrics returns *FraudDetected*, make no changes, hand off to a representative with a warning, and alert the security team without notifying the customer.
 
-**Protect action links**: The Confirm and Undo links in emails call an HTTP-triggered flow with a signature in the URL. Treat the URL as a secret, validate the requested operation against the current record state, and only allow valid transitions.
+**Protect action links**: The signature in an HTTP trigger URL only authorizes calling the flow. It doesn't authorize a specific customer, record, or operation, and email security scanners and link previews can open links automatically. Protect Confirm and Undo links in three ways:
+
+- **Separate the link from the action**: The link in the email opens a confirmation page (for example, a Power Pages page) that changes nothing on a GET request. Only an explicit selection on the page sends a POST request that runs the change.
+- **Use a single-use, expiring token**: When a flow sends the email, it creates a token row in Dataverse that is bound to the record, the operation, and the customer, with an expiry time (for example 72 hours). The *Email response* flow accepts the request only when the token exists, matches the record and operation, hasn't expired, and hasn't been used. It marks the token as used in the same transaction as the change.
+- **Validate the transition**: Before any change, check that the requested operation is valid for the current record state, for example Undo cancellation only when the subscription is cancelled.
+
+Never publish the trigger URL outside these emails, and rotate it if it leaks.
 
 **Add layers when the risk requires it**: Contact Center supports an SMS one-time code during the call in addition to voice biometrics. For higher assurance, you can integrate an authenticator app code that the customer types on the keypad.
 
